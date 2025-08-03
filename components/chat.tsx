@@ -51,7 +51,19 @@ const Chat: React.FC<ChatProps> = ({
       <div className="flex grow flex-col h-full max-w-[750px] gap-2">
         <div className="h-[90vh] overflow-y-scroll px-10 flex flex-col">
           <div className="mt-auto space-y-5 pt-4">
-            {items.map((item, index) => (
+{items
+              .filter((item, index) => {
+                // Filter out consecutive web searches, keeping only the latest one
+                if (item.type === "tool_call" && item.tool_type === "web_search_call") {
+                  // Check if the next item is also a web search
+                  const nextItem = items[index + 1];
+                  if (nextItem && nextItem.type === "tool_call" && nextItem.tool_type === "web_search_call") {
+                    return false; // Hide this web search if the next one is also a web search
+                  }
+                }
+                return true;
+              })
+              .map((item, index) => (
               <React.Fragment key={index}>
                 {item.type === "tool_call" ? (
                   <ToolCall toolCall={item} />
