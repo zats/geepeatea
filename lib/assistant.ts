@@ -231,15 +231,12 @@ export const processMessages = async () => {
                 },
               ],
             });
+            // Don't push the raw message item to conversationItems
+            // Instead, push a simple assistant message without the id
+            // This avoids the reasoning item dependency issue
             conversationItems.push({
               role: "assistant",
-              content: [
-                {
-                  type: "output_text",
-                  text,
-                  ...(annotations.length > 0 ? { annotations } : {}),
-                },
-              ],
+              content: text,
             });
             setChatMessages([...chatMessages]);
             setConversationItems([...conversationItems]);
@@ -319,8 +316,13 @@ export const processMessages = async () => {
           toolCallMessage.call_id = item.call_id;
           setChatMessages([...chatMessages]);
         }
-        conversationItems.push(item);
-        setConversationItems([...conversationItems]);
+        // Only push tool call output items to conversationItems
+        // Filter out message, reasoning, and internal tool call items
+        const allowedTypes = ["function_call_output", "mcp_call_output"];
+        if (allowedTypes.includes(item.type)) {
+          conversationItems.push(item);
+          setConversationItems([...conversationItems]);
+        }
         if (
           toolCallMessage &&
           toolCallMessage.type === "tool_call" &&
