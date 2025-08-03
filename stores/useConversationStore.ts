@@ -18,6 +18,7 @@ interface ConversationState {
   setAssistantLoading: (loading: boolean) => void;
   deleteChatMessage: (index: number) => void;
   deleteChatMessageAfter: (index: number) => void;
+  editChatMessage: (index: number, newText: string) => void;
   rawSet: (state: any) => void;
 }
 
@@ -114,6 +115,36 @@ const useConversationStore = create<ConversationState>((set) => ({
         chatMessages: newChatMessages,
         conversationItems: newConversationItems
       };
+    }),
+  editChatMessage: (index, newText) =>
+    set((state) => {
+      const newChatMessages = [...state.chatMessages];
+      const messageToEdit = newChatMessages[index];
+      
+      if (messageToEdit?.type === "message" && messageToEdit.content[0]) {
+        const oldText = messageToEdit.content[0].text;
+        
+        // Update the chat message
+        messageToEdit.content[0].text = newText;
+        
+        // Also update corresponding message in conversationItems
+        let newConversationItems = [...state.conversationItems];
+        if (messageToEdit.role === "user" || messageToEdit.role === "assistant") {
+          const conversationIndex = newConversationItems.findIndex(
+            (item) => item.role === messageToEdit.role && item.content === oldText
+          );
+          if (conversationIndex !== -1) {
+            newConversationItems[conversationIndex].content = newText;
+          }
+        }
+        
+        return { 
+          chatMessages: newChatMessages,
+          conversationItems: newConversationItems
+        };
+      }
+      
+      return state;
     }),
   rawSet: set,
 }));

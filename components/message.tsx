@@ -10,7 +10,9 @@ interface MessageProps {
 
 const Message: React.FC<MessageProps> = ({ message, messageIndex }) => {
   const [contextMenu, setContextMenu] = useState<{ x: number; y: number } | null>(null);
-  const { deleteChatMessage, deleteChatMessageAfter } = useConversationStore();
+  const [isEditing, setIsEditing] = useState(false);
+  const [editText, setEditText] = useState("");
+  const { deleteChatMessage, deleteChatMessageAfter, editChatMessage } = useConversationStore();
 
   const handleContextMenu = (e: React.MouseEvent) => {
     e.preventDefault();
@@ -31,6 +33,34 @@ const Message: React.FC<MessageProps> = ({ message, messageIndex }) => {
     setContextMenu(null);
   };
 
+  const handleEdit = () => {
+    setEditText(message.content[0].text as string);
+    setIsEditing(true);
+    setContextMenu(null);
+  };
+
+  const handleSaveEdit = () => {
+    editChatMessage(messageIndex, editText);
+    setIsEditing(false);
+  };
+
+  const handleCancelEdit = (force: boolean) => {
+    if (force) {
+    setIsEditing(false);
+    setEditText("");
+  }
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    if (e.key === "Enter" && !e.shiftKey) {
+      e.preventDefault();
+      handleSaveEdit();
+    } else if (e.key === "Escape") {
+      e.preventDefault();
+      handleCancelEdit(true);
+    }
+  };
+
   React.useEffect(() => {
     const handleClick = () => setContextMenu(null);
     document.addEventListener('click', handleClick);
@@ -42,14 +72,26 @@ const Message: React.FC<MessageProps> = ({ message, messageIndex }) => {
         <div className="flex justify-end">
           <div>
             <div 
-              className="ml-4 rounded-[16px] px-4 py-2 md:ml-24 bg-[#ededed] text-stone-900  font-light cursor-pointer"
+              className={`ml-4 md:ml-24 ${isEditing ? '' : 'rounded-[16px] px-4 py-2 bg-[#ededed]'} text-stone-900 font-light cursor-pointer`}
               onContextMenu={handleContextMenu}
             >
               <div>
                 <div>
-                  <ReactMarkdown>
-                    {message.content[0].text as string}
-                  </ReactMarkdown>
+                  {isEditing ? (
+                    <textarea
+                      value={editText}
+                      onChange={(e) => setEditText(e.target.value)}
+                      onKeyDown={handleKeyDown}
+                      className="w-full bg-[#ededed] border border-gray-300 rounded-[16px] px-4 py-2 outline-none resize-none font-light text-stone-900"
+                      rows={Math.max(2, editText.split('\n').length)}
+                      autoFocus
+                      onBlur={handleSaveEdit}
+                    />
+                  ) : (
+                    <ReactMarkdown>
+                      {message.content[0].text as string}
+                    </ReactMarkdown>
+                  )}
                 </div>
               </div>
             </div>
@@ -59,13 +101,11 @@ const Message: React.FC<MessageProps> = ({ message, messageIndex }) => {
         <div className="flex flex-col">
           <div className="flex">
             <div 
-              className="mr-4 rounded-[16px] px-4 py-2 md:mr-24 text-black bg-white font-light cursor-pointer"
+              className={`mr-4 md:mr-24 rounded-[16px] px-4 py-2 bg-white border border-gray-200 text-black font-light cursor-pointer ${isEditing ? 'relative' : ''}`}
               onContextMenu={handleContextMenu}
             >
-              <div>
-                <ReactMarkdown>
-                  {message.content[0].text as string}
-                </ReactMarkdown>
+              <div className={isEditing ? 'opacity-0' : '' + ' whitespace-pre-wrap'}>
+                {message.content[0].text as string}
                 {message.content[0].annotations &&
                   message.content[0].annotations
                     .filter(
@@ -83,6 +123,31 @@ const Message: React.FC<MessageProps> = ({ message, messageIndex }) => {
                       />
                     ))}
               </div>
+              {isEditing && (
+                <textarea
+                  value={editText}
+                  onChange={(e) => setEditText(e.target.value)}
+                  onKeyDown={handleKeyDown}
+                  wrap="soft"
+                  className="absolute bg-white border border-gray-200 rounded-[16px] outline-none resize-none font-light text-black"
+                  style={{
+                    top: '0px',
+                    left: '0px',
+                    right: '0px',
+                    bottom: '0px',
+                    padding: '8px 16px',
+                    margin: '0px',
+                    fontFamily: 'inherit',
+                    fontSize: 'inherit',
+                    lineHeight: 'inherit',
+                    letterSpacing: 'inherit',
+                    wordSpacing: 'inherit',
+                    whiteSpace: 'pre-wrap'
+                  }}
+                  autoFocus
+                  onBlur={handleSaveEdit}
+                />
+              )}
             </div>
           </div>
         </div>
@@ -95,6 +160,19 @@ const Message: React.FC<MessageProps> = ({ message, messageIndex }) => {
           style={{ left: contextMenu.x, top: contextMenu.y }}
           onClick={(e) => e.stopPropagation()}
         >
+          <button
+            className="w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-100 flex items-center gap-2"
+            onClick={handleEdit}
+          >
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+            </svg>
+            Edit
+          </button>
+          
+          {/* Separator */}
+          <div className="border-t border-gray-200 my-1"></div>
+          
           <button
             className="w-full px-4 py-2 text-left text-sm text-red-600 hover:bg-gray-100 flex items-center gap-2"
             onClick={handleDeleteMessage}
