@@ -10,6 +10,8 @@ interface ConversationState {
   conversationItems: any[];
   // Whether we are waiting for the assistant response
   isAssistantLoading: boolean;
+  // AbortController for current request
+  currentAbortController: AbortController | null;
 
   setChatMessages: (items: Item[]) => void;
   setConversationItems: (messages: any[]) => void;
@@ -19,6 +21,8 @@ interface ConversationState {
   deleteChatMessage: (index: number) => void;
   deleteChatMessageAfter: (index: number) => void;
   editChatMessage: (index: number, newText: string) => void;
+  setCurrentAbortController: (controller: AbortController | null) => void;
+  abortCurrentRequest: () => void;
   rawSet: (state: any) => void;
 }
 
@@ -32,6 +36,7 @@ const useConversationStore = create<ConversationState>((set) => ({
   ],
   conversationItems: [],
   isAssistantLoading: false,
+  currentAbortController: null,
   setChatMessages: (items) => set({ chatMessages: items }),
   setConversationItems: (messages) => set({ conversationItems: messages }),
   addChatMessage: (item) =>
@@ -146,6 +151,14 @@ const useConversationStore = create<ConversationState>((set) => ({
       
       return state;
     }),
+  setCurrentAbortController: (controller) => set({ currentAbortController: controller }),
+  abortCurrentRequest: () => {
+    const state = useConversationStore.getState();
+    if (state.currentAbortController) {
+      state.currentAbortController.abort();
+      set({ currentAbortController: null, isAssistantLoading: false });
+    }
+  },
   rawSet: set,
 }));
 

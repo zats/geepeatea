@@ -12,9 +12,7 @@ If they ask something that could be solved through code, use the code interprete
 // ${context}
 
 // Initial message that will be displayed in the chat
-export const INITIAL_MESSAGE = `
-Hi, how can I help you?
-`;
+export const INITIAL_MESSAGE = `Hi, how can I help you?`;
 
 export const defaultVectorStore = {
   id: "",

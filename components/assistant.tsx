@@ -5,11 +5,14 @@ import useConversationStore from "@/stores/useConversationStore";
 import { Item, processMessages } from "@/lib/assistant";
 
 export default function Assistant() {
-  const { chatMessages, addConversationItem, addChatMessage, setAssistantLoading } =
+  const { chatMessages, addConversationItem, addChatMessage, setAssistantLoading, abortCurrentRequest } =
     useConversationStore();
 
   const handleSendMessage = async (message: string) => {
     if (!message.trim()) return;
+
+    // Abort any current request before starting a new one
+    abortCurrentRequest();
 
     const userItem: Item = {
       type: "message",

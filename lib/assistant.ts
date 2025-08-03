@@ -75,7 +75,8 @@ export type Item =
 export const handleTurn = async (
   messages: any[],
   tools: any[],
-  onMessage: (data: any) => void
+  onMessage: (data: any) => void,
+  abortController?: AbortController
 ) => {
   try {
     // Get response from the API (defined in app/api/turn_response/route.ts)
@@ -86,6 +87,7 @@ export const handleTurn = async (
         messages: messages,
         tools: tools,
       }),
+      signal: abortController?.signal,
     });
 
     if (!response.ok) {
@@ -130,7 +132,12 @@ export const handleTurn = async (
       }
     }
   } catch (error) {
-    console.error("Error handling turn:", error);
+    if (error instanceof Error && error.name === 'AbortError') {
+      console.log('Request was aborted in handleTurn');
+    } else {
+      console.error("Error handling turn:", error);
+    }
+    throw error; // Re-throw so processMessages can handle it
   }
 };
 
@@ -141,7 +148,13 @@ export const processMessages = async () => {
     setChatMessages,
     setConversationItems,
     setAssistantLoading,
+    currentAbortController,
+    setCurrentAbortController,
   } = useConversationStore.getState();
+
+  // Create new AbortController for this request
+  const abortController = new AbortController();
+  setCurrentAbortController(abortController);
 
   const tools = getTools();
   const allConversationItems = [
@@ -158,7 +171,8 @@ export const processMessages = async () => {
   // For streaming MCP tool call arguments
   let mcpArguments = "";
 
-  await handleTurn(allConversationItems, tools, async ({ event, data }) => {
+  try {
+    await handleTurn(allConversationItems, tools, async ({ event, data }) => {
     switch (event) {
       case "response.output_text.delta":
       case "response.output_text.annotation.added": {
@@ -545,5 +559,19 @@ export const processMessages = async () => {
 
       // Handle other events as needed
     }
-  });
+    }, abortController);
+  } catch (error) {
+    if (error instanceof Error && error.name === 'AbortError') {
+      console.log('Request was aborted');
+      setAssistantLoading(false);
+    } else {
+      console.error('Error in processMessages:', error);
+      setAssistantLoading(false);
+    }
+  } finally {
+    // Clear the abort controller when done
+    if (currentAbortController === abortController) {
+      setCurrentAbortController(null);
+    }
+  }
 };
