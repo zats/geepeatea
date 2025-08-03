@@ -1,17 +1,34 @@
 import { MessageItem } from "@/lib/assistant";
-import React, { useState } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import ReactMarkdown from "react-markdown";
 import useConversationStore from "@/stores/useConversationStore";
 
 interface MessageProps {
   message: MessageItem;
   messageIndex: number;
+  onAnnotationsChange?: (messageIndex: number, annotations: TextAnnotation[]) => void;
 }
 
-const Message: React.FC<MessageProps> = ({ message, messageIndex }) => {
+interface TextAnnotation {
+  id: string;
+  text: string;
+  comment: string;
+  startIndex: number;
+  endIndex: number;
+}
+
+const Message: React.FC<MessageProps> = ({ message, messageIndex, onAnnotationsChange }) => {
   const [contextMenu, setContextMenu] = useState<{ x: number; y: number } | null>(null);
   const [isEditing, setIsEditing] = useState(false);
   const [editText, setEditText] = useState("");
+  const [annotations, setAnnotations] = useState<TextAnnotation[]>([]);
+  const [selectedText, setSelectedText] = useState<string>("");
+  const [selectionRange, setSelectionRange] = useState<{ start: number; end: number } | null>(null);
+  const [annotationMenu, setAnnotationMenu] = useState<{ x: number; y: number } | null>(null);
+  const [activeAnnotation, setActiveAnnotation] = useState<string | null>(null);
+  const [annotationComment, setAnnotationComment] = useState("");
+  const messageRef = useRef<HTMLDivElement>(null);
+  const messageDomRef = useRef<HTMLDivElement>(null);
   const { deleteChatMessage, deleteChatMessageAfter, editChatMessage } = useConversationStore();
 
   const handleContextMenu = (e: React.MouseEvent) => {
@@ -61,11 +78,262 @@ const Message: React.FC<MessageProps> = ({ message, messageIndex }) => {
     }
   };
 
+  const handleTextSelection = () => {
+    if (message.role !== "assistant") return;
+    
+    const selection = window.getSelection();
+    if (!selection || selection.isCollapsed) {
+      // Don't clear annotation menu immediately - let click handler manage it
+      return;
+    }
+
+    const selectedText = selection.toString().trim();
+    if (!selectedText) return;
+
+    const range = selection.getRangeAt(0);
+    const messageElement = messageDomRef.current;
+    if (!messageElement || !messageElement.contains(range.startContainer)) return;
+
+    // Calculate selection indices relative to the message text
+    const fullText = message.content[0].text as string;
+    const startIndex = getTextIndex(messageElement, range.startContainer, range.startOffset);
+    const endIndex = startIndex + selectedText.length;
+
+    setSelectedText(selectedText);
+    setSelectionRange({ start: startIndex, end: endIndex });
+
+    // Position the annotation menu near the selection
+    const rect = range.getBoundingClientRect();
+    setAnnotationMenu({
+      x: rect.left + rect.width / 2,
+      y: rect.bottom + 5
+    });
+  };
+
+  const getTextIndex = (parent: Element, node: Node, offset: number): number => {
+    let textIndex = 0;
+    const walker = document.createTreeWalker(
+      parent,
+      NodeFilter.SHOW_TEXT,
+      null,
+    );
+
+    let currentNode;
+    while (currentNode = walker.nextNode()) {
+      if (currentNode === node) {
+        return textIndex + offset;
+      }
+      textIndex += currentNode.textContent?.length || 0;
+    }
+    return textIndex;
+  };
+
+  const handleCreateAnnotation = () => {
+    if (!selectedText || !selectionRange) return;
+
+    const id = Date.now().toString();
+    const newAnnotation: TextAnnotation = {
+      id,
+      text: selectedText,
+      comment: "",
+      startIndex: selectionRange.start,
+      endIndex: selectionRange.end
+    };
+
+    setAnnotations(prev => [...prev, newAnnotation]);
+    setActiveAnnotation(id);
+    setAnnotationComment("");
+    setAnnotationMenu(null);
+    
+    // Don't clear selection yet - we'll clear it when annotation is saved/cancelled
+  };
+
+  const handleSaveAnnotation = (annotationId: string) => {
+    if (!annotationComment.trim()) return;
+
+    setAnnotations(prev => prev.map(ann => 
+      ann.id === annotationId 
+        ? { ...ann, comment: annotationComment.trim() }
+        : ann
+    ));
+    setActiveAnnotation(null);
+    setAnnotationComment("");
+    
+    // Clear selection when annotation is saved
+    window.getSelection()?.removeAllRanges();
+  };
+
+  const handleCancelAnnotation = React.useCallback((annotationId: string) => {
+    // Find the annotation to check if it has a saved comment
+    const annotation = annotations.find(ann => ann.id === annotationId);
+    
+    if (annotation && annotation.comment.trim()) {
+      // Existing annotation with saved comment - just exit edit mode, don't delete
+      setActiveAnnotation(null);
+      setAnnotationComment("");
+    } else {
+      // New annotation without saved comment - remove it completely
+      setAnnotations(prev => prev.filter(ann => ann.id !== annotationId));
+      setActiveAnnotation(null);
+      setAnnotationComment("");
+    }
+    
+    // Clear selection when annotation is cancelled
+    window.getSelection()?.removeAllRanges();
+  }, [annotations]);
+
+  const handleDeleteAnnotation = (annotationId: string) => {
+    setAnnotations(prev => prev.filter(ann => ann.id !== annotationId));
+  };
+
+  const handleEditAnnotation = (annotationId: string) => {
+    const annotation = annotations.find(ann => ann.id === annotationId);
+    if (annotation) {
+      setActiveAnnotation(annotationId);
+      setAnnotationComment(annotation.comment);
+    }
+  };
+
+  const handleAnnotationKeyDown = (e: React.KeyboardEvent, annotationId: string) => {
+    if (e.key === "Enter" && !e.shiftKey) {
+      e.preventDefault();
+      handleSaveAnnotation(annotationId);
+    } else if (e.key === "Escape") {
+      e.preventDefault();
+      handleCancelAnnotation(annotationId);
+    }
+  };
+
+  const renderHighlightedText = (text: string) => {
+    if (annotations.length === 0) return text;
+
+    // Sort annotations by start index to process them in order
+    const sortedAnnotations = [...annotations].sort((a, b) => a.startIndex - b.startIndex);
+    
+    let result: React.ReactNode[] = [];
+    let lastIndex = 0;
+
+    sortedAnnotations.forEach((annotation, index) => {
+      // Add text before this annotation
+      if (annotation.startIndex > lastIndex) {
+        result.push(text.slice(lastIndex, annotation.startIndex));
+      }
+
+      // Add highlighted text
+      result.push(
+        <span
+          key={annotation.id}
+          className="bg-yellow-200 relative cursor-pointer inline"
+          title={annotation.comment || "Click to edit annotation"}
+          onClick={(e) => {
+            e.stopPropagation();
+            if (annotation.comment && activeAnnotation !== annotation.id) {
+              handleEditAnnotation(annotation.id);
+            }
+          }}
+        >
+          {text.slice(annotation.startIndex, annotation.endIndex)}
+          {/* Show inline input if this annotation is being actively edited */}
+          {activeAnnotation === annotation.id ? (
+            <div data-annotation-input className="absolute top-full left-0 mt-1 bg-yellow-100 border border-yellow-300 rounded p-2 text-sm min-w-[200px] max-w-64 z-20 shadow-lg">
+              <textarea
+                value={annotationComment}
+                onChange={(e) => setAnnotationComment(e.target.value)}
+                onKeyDown={(e) => handleAnnotationKeyDown(e, annotation.id)}
+                placeholder="Enter your comment..."
+                className="w-full p-2 border border-gray-300 rounded text-xs resize-none focus:outline-none focus:ring-2 focus:ring-blue-500"
+                rows={2}
+                autoFocus
+              />
+            </div>
+          ) : annotation.comment ? (
+            /* Show completed annotation tooltip */
+            <div className="absolute top-full left-0 mt-1 bg-yellow-100 border border-yellow-300 rounded p-2 text-xs max-w-48 z-10 shadow-lg relative">
+              {annotation.comment}
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleDeleteAnnotation(annotation.id);
+                }}
+                className="absolute -top-1 -right-1 w-4 h-4 bg-gray-500 hover:bg-gray-600 rounded-full flex items-center justify-center text-white text-xs font-bold"
+              >
+                ×
+              </button>
+            </div>
+          ) : null}
+        </span>
+      );
+
+      lastIndex = annotation.endIndex;
+    });
+
+    // Add remaining text
+    if (lastIndex < text.length) {
+      result.push(text.slice(lastIndex));
+    }
+
+    return result;
+  };
+
+  // Clear annotations when requested (exposed method)
+  React.useImperativeHandle(messageRef, () => ({
+    clearAnnotations: () => setAnnotations([])
+  }));
+
+  // Notify parent when annotations change - only call when valid annotations actually change
+  const validAnnotationsRef = React.useRef<TextAnnotation[]>([]);
   React.useEffect(() => {
-    const handleClick = () => setContextMenu(null);
+    if (onAnnotationsChange && message.role === "assistant") {
+      const validAnnotations = annotations.filter(ann => ann.comment.trim());
+      
+      // Only call parent if annotations actually changed
+      const currentValidAnnotations = JSON.stringify(validAnnotations.map(({ id, text, comment }) => ({ id, text, comment })));
+      const previousValidAnnotations = JSON.stringify(validAnnotationsRef.current.map(({ id, text, comment }) => ({ id, text, comment })));
+      
+      if (currentValidAnnotations !== previousValidAnnotations) {
+        validAnnotationsRef.current = validAnnotations;
+        onAnnotationsChange(messageIndex, validAnnotations);
+      }
+    }
+  }, [annotations, messageIndex, onAnnotationsChange, message.role]);
+
+  React.useEffect(() => {
+    const handleClick = (e: MouseEvent) => {
+      setContextMenu(null);
+      
+      const target = e.target as Element;
+      
+      // Clear annotation menu if clicking outside of it
+      const annotationMenuElement = document.querySelector('[data-annotation-menu]');
+      if (annotationMenuElement && !annotationMenuElement.contains(target)) {
+        setAnnotationMenu(null);
+      } else if (!annotationMenuElement) {
+        setAnnotationMenu(null);
+      }
+      
+      // Clear active annotation input if clicking outside of it
+      const annotationInputElement = document.querySelector('[data-annotation-input]');
+      if (activeAnnotation && annotationInputElement && !annotationInputElement.contains(target)) {
+        handleCancelAnnotation(activeAnnotation);
+      }
+    };
+    
+    const handleMouseUp = (e: MouseEvent) => {
+      // Only check for text selection on mouseup events within the message
+      const messageElement = messageDomRef.current;
+      if (messageElement && messageElement.contains(e.target as Node)) {
+        setTimeout(handleTextSelection, 10);
+      }
+    };
+
     document.addEventListener('click', handleClick);
-    return () => document.removeEventListener('click', handleClick);
-  }, []);
+    document.addEventListener('mouseup', handleMouseUp);
+    
+    return () => {
+      document.removeEventListener('click', handleClick);
+      document.removeEventListener('mouseup', handleMouseUp);
+    };
+  }, [activeAnnotation, handleCancelAnnotation]);
   return (
     <div className="text-sm">
       {message.role === "user" ? (
@@ -101,11 +369,12 @@ const Message: React.FC<MessageProps> = ({ message, messageIndex }) => {
         <div className="flex flex-col">
           <div className="flex">
             <div 
+              ref={messageDomRef}
               className={`mr-4 md:mr-24 rounded-[16px] px-4 py-2 bg-white border border-gray-200 text-black font-light cursor-pointer ${isEditing ? 'relative' : ''}`}
               onContextMenu={handleContextMenu}
             >
               <div className={isEditing ? 'opacity-0' : '' + ' whitespace-pre-wrap'}>
-                {message.content[0].text as string}
+                {renderHighlightedText(message.content[0].text as string)}
                 {message.content[0].annotations &&
                   message.content[0].annotations
                     .filter(
@@ -193,6 +462,27 @@ const Message: React.FC<MessageProps> = ({ message, messageIndex }) => {
           </button>
         </div>
       )}
+
+      {/* Annotation Menu */}
+      {annotationMenu && (
+        <div
+          data-annotation-menu
+          className="fixed bg-white border border-gray-200 rounded-md shadow-lg py-1 z-50"
+          style={{ left: annotationMenu.x, top: annotationMenu.y }}
+          onClick={(e) => e.stopPropagation()}
+        >
+          <button
+            className="w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-100 flex items-center gap-2"
+            onClick={handleCreateAnnotation}
+          >
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5.882V19.24a1.76 1.76 0 01-3.417.592l-2.147-6.15M18 13a3 3 0 100-6M5.436 13.683A4.001 4.001 0 017 6h1.832c4.1 0 7.625-1.234 9.168-3v14c-1.543-1.766-5.067-3-9.168-3H7a3.988 3.988 0 01-1.564-.317z" />
+            </svg>
+            Annotate
+          </button>
+        </div>
+      )}
+
     </div>
   );
 };

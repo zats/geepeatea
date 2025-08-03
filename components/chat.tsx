@@ -10,6 +10,14 @@ import { Item, McpApprovalRequestItem } from "@/lib/assistant";
 import LoadingMessage from "./loading-message";
 import useConversationStore from "@/stores/useConversationStore";
 
+interface TextAnnotation {
+  id: string;
+  text: string;
+  comment: string;
+  startIndex: number;
+  endIndex: number;
+}
+
 interface ChatProps {
   items: Item[];
   onSendMessage: (message: string) => void;
@@ -25,21 +33,59 @@ const Chat: React.FC<ChatProps> = ({
   const [inputMessageText, setinputMessageText] = useState<string>("");
   // This state is used to provide better user experience for non-English IMEs such as Japanese
   const [isComposing, setIsComposing] = useState(false);
+  const [messageAnnotations, setMessageAnnotations] = useState<Record<number, TextAnnotation[]>>({});
   const { isAssistantLoading } = useConversationStore();
 
   const scrollToBottom = () => {
     itemsEndRef.current?.scrollIntoView({ behavior: "instant" });
   };
 
+  const handleAnnotationsChange = useCallback((messageIndex: number, annotations: TextAnnotation[]) => {
+    setMessageAnnotations(prev => ({
+      ...prev,
+      [messageIndex]: annotations
+    }));
+  }, []);
+
+  const formatAnnotationsForMessage = (inputText: string): string => {
+    const allAnnotations = Object.values(messageAnnotations).flat();
+    if (allAnnotations.length === 0) {
+      return inputText;
+    }
+
+    let formattedMessage = inputText;
+    if (inputText.trim()) {
+      formattedMessage += "\n\n";
+    }
+    formattedMessage += "User Wants To make following changes in the previous message:\n\n";
+
+    // Add "User Wants To Change" sections for each annotation
+    allAnnotations.forEach((annotation, index) => {
+      formattedMessage += `Annotation on "${annotation.text}"; annotation: ${annotation.comment}\n\n`;
+    });
+
+    console.log("Formatted message with annotations:", formattedMessage);
+
+    return formattedMessage.trim();
+  };
+
+  const handleSendMessage = useCallback(() => {
+    const messageToSend = formatAnnotationsForMessage(inputMessageText);
+    onSendMessage(messageToSend);
+    setinputMessageText("");
+    
+    // Clear all annotations after sending
+    setMessageAnnotations({});
+  }, [inputMessageText, messageAnnotations, onSendMessage]);
+
   const handleKeyDown = useCallback(
     (event: React.KeyboardEvent<HTMLTextAreaElement>) => {
       if (event.key === "Enter" && !event.shiftKey && !isComposing) {
         event.preventDefault();
-        onSendMessage(inputMessageText);
-        setinputMessageText("");
+        handleSendMessage();
       }
     },
-    [onSendMessage, inputMessageText, isComposing]
+    [isComposing, handleSendMessage]
   );
 
   useEffect(() => {
@@ -72,7 +118,11 @@ const Chat: React.FC<ChatProps> = ({
                       <ToolCall toolCall={item} />
                     ) : item.type === "message" ? (
                       <div className="flex flex-col gap-1">
-                        <Message message={item} messageIndex={originalIndex} />
+                        <Message 
+                          message={item} 
+                          messageIndex={originalIndex} 
+                          onAnnotationsChange={handleAnnotationsChange}
+                        />
                         {item.content &&
                           item.content[0].annotations &&
                           item.content[0].annotations.length > 0 && (
@@ -117,13 +167,10 @@ const Chat: React.FC<ChatProps> = ({
                     />
                   </div>
                   <button
-                    disabled={!inputMessageText}
+                    disabled={!inputMessageText && Object.keys(messageAnnotations).length === 0}
                     data-testid="send-button"
                     className="flex size-8 items-end justify-center rounded-full bg-black text-white transition-colors hover:opacity-70 focus-visible:outline-none focus-visible:outline-black disabled:bg-[#D7D7D7] disabled:text-[#f4f4f4] disabled:hover:opacity-100"
-                  onClick={() => {
-                      onSendMessage(inputMessageText);
-                      setinputMessageText("");
-                    }}
+                    onClick={handleSendMessage}
                   >
                     <svg
                       xmlns="http://www.w3.org/2000/svg"

@@ -23,6 +23,7 @@ interface ConversationState {
   editChatMessage: (index: number, newText: string) => void;
   setCurrentAbortController: (controller: AbortController | null) => void;
   abortCurrentRequest: () => void;
+  replaceLastAssistantMessage: (newText: string) => void;
   rawSet: (state: any) => void;
 }
 
@@ -159,6 +160,40 @@ const useConversationStore = create<ConversationState>((set) => ({
       set({ currentAbortController: null, isAssistantLoading: false });
     }
   },
+  replaceLastAssistantMessage: (newText: string) =>
+    set((state) => {
+      const newChatMessages = [...state.chatMessages];
+      const newConversationItems = [...state.conversationItems];
+      
+      // Find the last assistant message in chatMessages
+      const lastAssistantIndex = newChatMessages.findLastIndex(
+        (msg) => msg.type === "message" && msg.role === "assistant"
+      );
+      
+      if (lastAssistantIndex !== -1) {
+        const lastAssistantMessage = newChatMessages[lastAssistantIndex];
+        const oldText = lastAssistantMessage.content[0]?.text;
+        
+        // Update the chat message
+        if (lastAssistantMessage.content[0]) {
+          lastAssistantMessage.content[0].text = newText;
+        }
+        
+        // Find and update corresponding message in conversationItems
+        const conversationIndex = newConversationItems.findLastIndex(
+          (item) => item.role === "assistant" && item.content === oldText
+        );
+        
+        if (conversationIndex !== -1) {
+          newConversationItems[conversationIndex].content = newText;
+        }
+      }
+      
+      return {
+        chatMessages: newChatMessages,
+        conversationItems: newConversationItems
+      };
+    }),
   rawSet: set,
 }));
 
