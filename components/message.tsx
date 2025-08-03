@@ -18,7 +18,7 @@ interface TextAnnotation {
   endIndex: number;
 }
 
-const Message: React.FC<MessageProps> = ({ message, messageIndex, onAnnotationsChange }) => {
+const Message = React.forwardRef<{ clearAnnotations: () => void }, MessageProps>(({ message, messageIndex, onAnnotationsChange }, ref) => {
   const [contextMenu, setContextMenu] = useState<{ x: number; y: number } | null>(null);
   const [isEditing, setIsEditing] = useState(false);
   const [editText, setEditText] = useState("");
@@ -95,10 +95,11 @@ const Message: React.FC<MessageProps> = ({ message, messageIndex, onAnnotationsC
     const messageElement = messageDomRef.current;
     if (!messageElement || !messageElement.contains(range.startContainer)) return;
 
-    // Calculate selection indices relative to the message text
+    // Calculate selection indices relative to the original text (not the DOM text)
     const fullText = message.content[0].text as string;
-    const startIndex = getTextIndex(messageElement, range.startContainer, range.startOffset);
-    const endIndex = startIndex + selectedText.length;
+    const { startIndex, endIndex } = getOriginalTextIndices(messageElement, range, fullText);
+    
+    if (startIndex === -1 || endIndex === -1) return;
 
     setSelectedText(selectedText);
     setSelectionRange({ start: startIndex, end: endIndex });
@@ -111,22 +112,76 @@ const Message: React.FC<MessageProps> = ({ message, messageIndex, onAnnotationsC
     });
   };
 
-  const getTextIndex = (parent: Element, node: Node, offset: number): number => {
-    let textIndex = 0;
+  const getOriginalTextIndices = (parent: Element, range: Range, originalText: string): { startIndex: number; endIndex: number } => {
+    // Get the selected text from the range
+    const selectedText = range.toString();
+    
+    // Find the text content of the parent, ignoring annotation buttons and tooltips
+    let domText = '';
     const walker = document.createTreeWalker(
       parent,
       NodeFilter.SHOW_TEXT,
-      null,
+      {
+        acceptNode: (node) => {
+          // Skip text nodes that are inside buttons or tooltips (annotation UI elements)
+          let parentEl = node.parentElement;
+          while (parentEl && parentEl !== parent) {
+            if (parentEl.tagName === 'BUTTON' || 
+                parentEl.hasAttribute('data-annotation-input') ||
+                parentEl.classList.contains('group-hover:block') ||
+                parentEl.classList.contains('group-hover:inline-flex')) {
+              return NodeFilter.FILTER_REJECT;
+            }
+            parentEl = parentEl.parentElement;
+          }
+          return NodeFilter.FILTER_ACCEPT;
+        }
+      }
     );
 
     let currentNode;
     while (currentNode = walker.nextNode()) {
-      if (currentNode === node) {
-        return textIndex + offset;
-      }
-      textIndex += currentNode.textContent?.length || 0;
+      domText += currentNode.textContent || '';
     }
-    return textIndex;
+
+    // Find where the selected text appears in the original text
+    const startIndex = originalText.indexOf(selectedText);
+    if (startIndex === -1) {
+      // If exact match not found, try to find it accounting for whitespace differences
+      const normalizedSelected = selectedText.replace(/\s+/g, ' ').trim();
+      const normalizedOriginal = originalText.replace(/\s+/g, ' ');
+      const normalizedStart = normalizedOriginal.indexOf(normalizedSelected);
+      
+      if (normalizedStart === -1) {
+        return { startIndex: -1, endIndex: -1 };
+      }
+      
+      // Convert normalized index back to original text index
+      let originalIndex = 0;
+      let normalizedIndex = 0;
+      while (normalizedIndex < normalizedStart && originalIndex < originalText.length) {
+        if (originalText[originalIndex].match(/\s/)) {
+          // Skip extra whitespace in original
+          while (originalIndex < originalText.length && originalText[originalIndex].match(/\s/)) {
+            originalIndex++;
+          }
+          normalizedIndex++;
+        } else {
+          originalIndex++;
+          normalizedIndex++;
+        }
+      }
+      
+      return { 
+        startIndex: originalIndex, 
+        endIndex: originalIndex + selectedText.length 
+      };
+    }
+
+    return { 
+      startIndex, 
+      endIndex: startIndex + selectedText.length 
+    };
   };
 
   const handleCreateAnnotation = () => {
@@ -280,7 +335,7 @@ const Message: React.FC<MessageProps> = ({ message, messageIndex, onAnnotationsC
   };
 
   // Clear annotations when requested (exposed method)
-  React.useImperativeHandle(messageRef, () => ({
+  React.useImperativeHandle(ref, () => ({
     clearAnnotations: () => setAnnotations([])
   }));
 
@@ -456,7 +511,7 @@ const Message: React.FC<MessageProps> = ({ message, messageIndex, onAnnotationsC
             onClick={handleDeleteAfter}
           >
             <Trash2 className="w-4 h-4" />
-            Delete after this
+            Delete rest of the messages
           </button>
         </div>
       )}
@@ -481,6 +536,6 @@ const Message: React.FC<MessageProps> = ({ message, messageIndex, onAnnotationsC
 
     </div>
   );
-};
+});
 
 export default Message;

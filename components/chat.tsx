@@ -30,6 +30,7 @@ const Chat: React.FC<ChatProps> = ({
   onApprovalResponse,
 }) => {
   const itemsEndRef = useRef<HTMLDivElement>(null);
+  const messageRefs = useRef<Record<number, { clearAnnotations: () => void }>>({});
   const [inputMessageText, setinputMessageText] = useState<string>("");
   // This state is used to provide better user experience for non-English IMEs such as Japanese
   const [isComposing, setIsComposing] = useState(false);
@@ -57,11 +58,9 @@ const Chat: React.FC<ChatProps> = ({
     if (inputText.trim()) {
       formattedMessage += "\n\n";
     }
-    formattedMessage += "User Wants To make following changes in the previous message:\n\n";
-
-    // Add "User Wants To Change" sections for each annotation
+    formattedMessage += "User made following annotations on the previous message:\n\n";
     allAnnotations.forEach((annotation, index) => {
-      formattedMessage += `Annotation on "${annotation.text}"; annotation: ${annotation.comment}\n\n`;
+      formattedMessage += `* "${annotation.text}" → ${annotation.comment}\n\n`;
     });
 
     console.log("Formatted message with annotations:", formattedMessage);
@@ -76,6 +75,13 @@ const Chat: React.FC<ChatProps> = ({
     
     // Clear all annotations after sending
     setMessageAnnotations({});
+    
+    // Clear annotations from all assistant message components
+    Object.values(messageRefs.current).forEach(messageRef => {
+      if (messageRef && messageRef.clearAnnotations) {
+        messageRef.clearAnnotations();
+      }
+    });
   }, [inputMessageText, messageAnnotations, onSendMessage]);
 
   const handleKeyDown = useCallback(
@@ -119,6 +125,11 @@ const Chat: React.FC<ChatProps> = ({
                     ) : item.type === "message" ? (
                       <div className="flex flex-col gap-1">
                         <Message 
+                          ref={(ref) => {
+                            if (ref && item.role === "assistant") {
+                              messageRefs.current[originalIndex] = ref;
+                            }
+                          }}
                           message={item} 
                           messageIndex={originalIndex} 
                           onAnnotationsChange={handleAnnotationsChange}
