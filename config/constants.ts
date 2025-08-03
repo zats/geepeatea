@@ -1,4 +1,4 @@
-export const MODEL = "gpt-4.1";
+export const MODEL = "o3";
 
 // Developer prompt for the assistant
 export const DEVELOPER_PROMPT = `
