@@ -16,6 +16,8 @@ interface ConversationState {
   addChatMessage: (item: Item) => void;
   addConversationItem: (message: ChatCompletionMessageParam) => void;
   setAssistantLoading: (loading: boolean) => void;
+  deleteChatMessage: (index: number) => void;
+  deleteChatMessageAfter: (index: number) => void;
   rawSet: (state: any) => void;
 }
 
@@ -38,6 +40,81 @@ const useConversationStore = create<ConversationState>((set) => ({
       conversationItems: [...state.conversationItems, message],
     })),
   setAssistantLoading: (loading) => set({ isAssistantLoading: loading }),
+  deleteChatMessage: (index) =>
+    set((state) => {
+      const newChatMessages = [...state.chatMessages];
+      const deletedMessage = newChatMessages[index];
+      newChatMessages.splice(index, 1);
+      
+      // Also remove corresponding message from conversationItems if it's a user or assistant message
+      let newConversationItems = [...state.conversationItems];
+      if (deletedMessage?.type === "message" && (deletedMessage.role === "user" || deletedMessage.role === "assistant")) {
+        // Find and remove the corresponding message from conversationItems
+        // For user messages, look for exact text match
+        // For assistant messages, they might have been converted to simple format
+        if (deletedMessage.role === "user") {
+          const messageText = deletedMessage.content[0]?.text;
+          const conversationIndex = newConversationItems.findIndex(
+            (item) => item.role === "user" && item.content === messageText
+          );
+          if (conversationIndex !== -1) {
+            newConversationItems.splice(conversationIndex, 1);
+          }
+        } else if (deletedMessage.role === "assistant") {
+          const messageText = deletedMessage.content[0]?.text;
+          const conversationIndex = newConversationItems.findIndex(
+            (item) => item.role === "assistant" && item.content === messageText
+          );
+          if (conversationIndex !== -1) {
+            newConversationItems.splice(conversationIndex, 1);
+          }
+        }
+      }
+      
+      return { 
+        chatMessages: newChatMessages,
+        conversationItems: newConversationItems
+      };
+    }),
+  deleteChatMessageAfter: (index) =>
+    set((state) => {
+      const newChatMessages = [...state.chatMessages];
+      const messagesToDelete = newChatMessages.slice(index);
+      
+      // Keep only messages before the selected index
+      newChatMessages.splice(index);
+      
+      // Also remove corresponding messages from conversationItems
+      let newConversationItems = [...state.conversationItems];
+      
+      // For each deleted message, find and remove its corresponding item from conversationItems
+      messagesToDelete.forEach((deletedMessage) => {
+        if (deletedMessage?.type === "message" && (deletedMessage.role === "user" || deletedMessage.role === "assistant")) {
+          if (deletedMessage.role === "user") {
+            const messageText = deletedMessage.content[0]?.text;
+            const conversationIndex = newConversationItems.findIndex(
+              (item) => item.role === "user" && item.content === messageText
+            );
+            if (conversationIndex !== -1) {
+              newConversationItems.splice(conversationIndex, 1);
+            }
+          } else if (deletedMessage.role === "assistant") {
+            const messageText = deletedMessage.content[0]?.text;
+            const conversationIndex = newConversationItems.findIndex(
+              (item) => item.role === "assistant" && item.content === messageText
+            );
+            if (conversationIndex !== -1) {
+              newConversationItems.splice(conversationIndex, 1);
+            }
+          }
+        }
+      });
+      
+      return { 
+        chatMessages: newChatMessages,
+        conversationItems: newConversationItems
+      };
+    }),
   rawSet: set,
 }));
 

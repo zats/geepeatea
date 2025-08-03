@@ -63,31 +63,35 @@ const Chat: React.FC<ChatProps> = ({
                 }
                 return true;
               })
-              .map((item, index) => (
-              <React.Fragment key={index}>
-                {item.type === "tool_call" ? (
-                  <ToolCall toolCall={item} />
-                ) : item.type === "message" ? (
-                  <div className="flex flex-col gap-1">
-                    <Message message={item} />
-                    {item.content &&
-                      item.content[0].annotations &&
-                      item.content[0].annotations.length > 0 && (
-                        <Annotations
-                          annotations={item.content[0].annotations}
-                        />
-                      )}
-                  </div>
-                ) : item.type === "mcp_list_tools" ? (
-                  <McpToolsList item={item} />
-                ) : item.type === "mcp_approval_request" ? (
-                  <McpApproval
-                    item={item as McpApprovalRequestItem}
-                    onRespond={onApprovalResponse}
-                  />
-                ) : null}
-              </React.Fragment>
-            ))}
+              .map((item, index) => {
+                // Find the original index in the unfiltered items array for accurate deletion
+                const originalIndex = items.findIndex(originalItem => originalItem === item);
+                return (
+                  <React.Fragment key={index}>
+                    {item.type === "tool_call" ? (
+                      <ToolCall toolCall={item} />
+                    ) : item.type === "message" ? (
+                      <div className="flex flex-col gap-1">
+                        <Message message={item} messageIndex={originalIndex} />
+                        {item.content &&
+                          item.content[0].annotations &&
+                          item.content[0].annotations.length > 0 && (
+                            <Annotations
+                              annotations={item.content[0].annotations}
+                            />
+                          )}
+                      </div>
+                    ) : item.type === "mcp_list_tools" ? (
+                      <McpToolsList item={item} />
+                    ) : item.type === "mcp_approval_request" ? (
+                      <McpApproval
+                        item={item as McpApprovalRequestItem}
+                        onRespond={onApprovalResponse}
+                      />
+                    ) : null}
+                  </React.Fragment>
+                );
+              })}
             {isAssistantLoading && <LoadingMessage />}
             <div ref={itemsEndRef} />
           </div>
