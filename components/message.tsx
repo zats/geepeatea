@@ -2,6 +2,7 @@ import { MessageItem } from "@/lib/assistant";
 import React, { useState, useRef, useEffect } from "react";
 import ReactMarkdown from "react-markdown";
 import useConversationStore from "@/stores/useConversationStore";
+import { X, Edit3, Trash2, MessageSquare } from "lucide-react";
 
 interface MessageProps {
   message: MessageItem;
@@ -223,7 +224,7 @@ const Message: React.FC<MessageProps> = ({ message, messageIndex, onAnnotationsC
       result.push(
         <span
           key={annotation.id}
-          className="bg-yellow-200 relative cursor-pointer inline"
+          className="bg-yellow-200 relative cursor-pointer inline group"
           title={annotation.comment || "Click to edit annotation"}
           onClick={(e) => {
             e.stopPropagation();
@@ -233,6 +234,18 @@ const Message: React.FC<MessageProps> = ({ message, messageIndex, onAnnotationsC
           }}
         >
           {text.slice(annotation.startIndex, annotation.endIndex)}
+          {/* Show delete button next to highlight on hover */}
+          {annotation.comment && (
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                handleDeleteAnnotation(annotation.id);
+              }}
+              className="group-hover:inline-flex hidden ml-1 w-3 h-3 bg-gray-500 hover:bg-gray-600 rounded-full items-center justify-center text-white"
+            >
+              <X size={8} />
+            </button>
+          )}
           {/* Show inline input if this annotation is being actively edited */}
           {activeAnnotation === annotation.id ? (
             <div data-annotation-input className="absolute top-full left-0 mt-1 bg-yellow-100 border border-yellow-300 rounded p-2 text-sm min-w-[200px] max-w-64 z-20 shadow-lg">
@@ -247,18 +260,9 @@ const Message: React.FC<MessageProps> = ({ message, messageIndex, onAnnotationsC
               />
             </div>
           ) : annotation.comment ? (
-            /* Show completed annotation tooltip */
-            <div className="absolute top-full left-0 mt-1 bg-yellow-100 border border-yellow-300 rounded p-2 text-xs max-w-48 z-10 shadow-lg relative">
+            /* Show completed annotation tooltip on hover */
+            <div className="group-hover:block hidden absolute top-full left-0 mt-1 bg-yellow-100 border border-yellow-300 rounded p-2 text-xs max-w-48 z-10 shadow-lg">
               {annotation.comment}
-              <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  handleDeleteAnnotation(annotation.id);
-                }}
-                className="absolute -top-1 -right-1 w-4 h-4 bg-gray-500 hover:bg-gray-600 rounded-full flex items-center justify-center text-white text-xs font-bold"
-              >
-                ×
-              </button>
             </div>
           ) : null}
         </span>
@@ -433,9 +437,7 @@ const Message: React.FC<MessageProps> = ({ message, messageIndex, onAnnotationsC
             className="w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-100 flex items-center gap-2"
             onClick={handleEdit}
           >
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-            </svg>
+            <Edit3 className="w-4 h-4" />
             Edit
           </button>
           
@@ -446,18 +448,14 @@ const Message: React.FC<MessageProps> = ({ message, messageIndex, onAnnotationsC
             className="w-full px-4 py-2 text-left text-sm text-red-600 hover:bg-gray-100 flex items-center gap-2"
             onClick={handleDeleteMessage}
           >
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-            </svg>
+            <Trash2 className="w-4 h-4" />
             Delete message
           </button>
           <button
             className="w-full px-4 py-2 text-left text-sm text-red-600 hover:bg-gray-100 flex items-center gap-2"
             onClick={handleDeleteAfter}
           >
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16M12 11l4 4-4 4" />
-            </svg>
+            <Trash2 className="w-4 h-4" />
             Delete after this
           </button>
         </div>
@@ -475,9 +473,7 @@ const Message: React.FC<MessageProps> = ({ message, messageIndex, onAnnotationsC
             className="w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-100 flex items-center gap-2"
             onClick={handleCreateAnnotation}
           >
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5.882V19.24a1.76 1.76 0 01-3.417.592l-2.147-6.15M18 13a3 3 0 100-6M5.436 13.683A4.001 4.001 0 017 6h1.832c4.1 0 7.625-1.234 9.168-3v14c-1.543-1.766-5.067-3-9.168-3H7a3.988 3.988 0 01-1.564-.317z" />
-            </svg>
+            <MessageSquare className="w-4 h-4" />
             Annotate
           </button>
         </div>
