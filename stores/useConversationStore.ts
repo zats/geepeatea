@@ -8,8 +8,8 @@ interface ConversationState {
   chatMessages: Item[];
   // Items sent to the Responses API
   conversationItems: any[];
-  // Whether we are waiting for the assistant response
-  isAssistantLoading: boolean;
+  // Single source of truth for chat state
+  chatState: 'idle' | 'waiting_for_assistant' | 'assistant_responding';
   // AbortController for current request
   currentAbortController: AbortController | null;
   // Index of message to replace (for annotation responses)
@@ -19,7 +19,7 @@ interface ConversationState {
   setConversationItems: (messages: any[]) => void;
   addChatMessage: (item: Item) => void;
   addConversationItem: (message: ChatCompletionMessageParam) => void;
-  setAssistantLoading: (loading: boolean) => void;
+  setChatState: (state: 'idle' | 'waiting_for_assistant' | 'assistant_responding') => void;
   deleteChatMessage: (index: number) => void;
   deleteChatMessageAfter: (index: number) => void;
   editChatMessage: (index: number, newText: string) => void;
@@ -42,7 +42,7 @@ const useConversationStore = create<ConversationState>((set) => ({
     },
   ],
   conversationItems: [],
-  isAssistantLoading: false,
+  chatState: 'idle',
   currentAbortController: null,
   messageToReplaceIndex: null,
   setChatMessages: (items) => set({ chatMessages: items }),
@@ -53,9 +53,8 @@ const useConversationStore = create<ConversationState>((set) => ({
     set((state) => ({
       conversationItems: [...state.conversationItems, message],
     })),
-  setAssistantLoading: (loading) => {
-    console.log(`[Loading State] Setting isAssistantLoading to: ${loading}`);
-    set({ isAssistantLoading: loading });
+  setChatState: (state) => {
+    set({ chatState: state });
   },
   deleteChatMessage: (index) =>
     set((state) => {
@@ -208,9 +207,8 @@ const useConversationStore = create<ConversationState>((set) => ({
   abortCurrentRequest: () => {
     const state = useConversationStore.getState();
     if (state.currentAbortController) {
-      console.log('[Loading State] Aborting request and setting isAssistantLoading to: false');
       state.currentAbortController.abort();
-      set({ currentAbortController: null, isAssistantLoading: false });
+      set({ currentAbortController: null, chatState: 'idle' });
     }
   },
   replaceLastAssistantMessage: (newText: string) =>

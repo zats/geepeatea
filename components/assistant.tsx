@@ -5,7 +5,7 @@ import useConversationStore from "@/stores/useConversationStore";
 import { Item, processMessages } from "@/lib/assistant";
 
 export default function Assistant() {
-  const { chatMessages, addConversationItem, addChatMessage, setAssistantLoading, abortCurrentRequest, setMessageToReplaceIndex } =
+  const { chatMessages, addConversationItem, addChatMessage, setChatState, abortCurrentRequest, setMessageToReplaceIndex } =
     useConversationStore();
 
   const handleSendMessage = async (message: string, annotatedMessageIndex?: number) => {
@@ -29,7 +29,7 @@ export default function Assistant() {
     };
 
     try {
-      setAssistantLoading(true);
+      setChatState('waiting_for_assistant');
       
       // If annotations exist, set the message to replace
       if (annotatedMessageIndex !== undefined) {
@@ -58,6 +58,7 @@ export default function Assistant() {
       }
     } catch (error) {
       console.error("Error processing message:", error);
+      setChatState('idle');
     }
   };
 
@@ -71,7 +72,7 @@ export default function Assistant() {
       approval_request_id: id,
     } as any;
     try {
-      setAssistantLoading(true);
+      setChatState('waiting_for_assistant');
       addConversationItem(approvalItem);
       await processMessages();
     } catch (error) {

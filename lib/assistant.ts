@@ -157,7 +157,7 @@ export const processMessages = async () => {
     conversationItems,
     setChatMessages,
     setConversationItems,
-    setAssistantLoading,
+    setChatState,
     currentAbortController,
     setCurrentAbortController,
     messageToReplaceIndex,
@@ -165,8 +165,7 @@ export const processMessages = async () => {
     createMessageVersion,
   } = useConversationStore.getState();
 
-  // Set loading state at the beginning of processing
-  setAssistantLoading(true);
+  // Chat state should already be 'waiting_for_assistant' from the caller
 
   // Create new AbortController for this request
   const abortController = new AbortController();
@@ -187,6 +186,8 @@ export const processMessages = async () => {
   let functionArguments = "";
   // For streaming MCP tool call arguments
   let mcpArguments = "";
+  // Track if we've created an assistant message for this response
+  let currentAssistantMessageIndex = -1;
   
   // Capture original content before replacement (for version creation)
   let originalMessageContent: Item["content"] | null = null;
@@ -212,11 +213,7 @@ export const processMessages = async () => {
 
         // UPDATE CONVERSATIONITEMS WITH EVERY DELTA AND PERSIST TO STORE
         if (assistantMessageContent.trim().length > 0) {
-          // Only hide loading indicator if this is still the current request
-          const currentState = useConversationStore.getState();
-          if (currentState.currentAbortController === abortController) {
-            setAssistantLoading(false);
-          }
+          // Keep loading indicator active during streaming - don't hide it here
           
           let updated = false;
           
@@ -230,21 +227,19 @@ export const processMessages = async () => {
               updated = true;
             }
           } else {
-            // Normal flow: find existing assistant message or create new one
-            const existingAssistantIndex = conversationItems.findLastIndex(
-              (item) => item.role === "assistant"
-            );
-            
-            if (existingAssistantIndex !== -1) {
-              // Update existing assistant message
-              conversationItems[existingAssistantIndex].content = assistantMessageContent;
-              updated = true;
-            } else {
-              // Create new assistant message
+            // Normal flow: create new assistant message or update current one
+            if (currentAssistantMessageIndex === -1) {
+              // First time receiving content - create new assistant message and mark as responding
               conversationItems.push({
                 role: "assistant",
                 content: assistantMessageContent,
               });
+              currentAssistantMessageIndex = conversationItems.length - 1;
+              setChatState('assistant_responding');
+              updated = true;
+            } else {
+              // Update the current streaming assistant message
+              conversationItems[currentAssistantMessageIndex].content = assistantMessageContent;
               updated = true;
             }
           }
@@ -345,20 +340,18 @@ export const processMessages = async () => {
                   console.warn(`[Assistant] Could not find existing assistant message in conversationItems to update`);
                 }
               } else {
-                // Normal flow: find existing assistant message or create new one
-                const existingAssistantIndex = conversationItems.findLastIndex(
-                  (item) => item.role === "assistant"
-                );
-                
-                if (existingAssistantIndex !== -1) {
-                  // Update existing assistant message
-                  conversationItems[existingAssistantIndex].content = text;
-                } else {
-                  // Create new assistant message
+                // Normal flow: create new assistant message or update current one
+                if (currentAssistantMessageIndex === -1) {
+                  // First time receiving content - create new assistant message and mark as responding
                   conversationItems.push({
                     role: "assistant",
                     content: text,
                   });
+                  currentAssistantMessageIndex = conversationItems.length - 1;
+                  setChatState('assistant_responding');
+                } else {
+                  // Update the current streaming assistant message
+                  conversationItems[currentAssistantMessageIndex].content = text;
                 }
               }
             }
@@ -632,7 +625,11 @@ export const processMessages = async () => {
 
       case "response.completed": {
         console.log("response completed", data);
-        // Don't set loading to false here anymore - it's already hidden when first content arrives
+        // Set state to idle when response is actually completed
+        const currentState = useConversationStore.getState();
+        if (currentState.currentAbortController === abortController) {
+          setChatState('idle');
+        }
         const { response } = data;
 
         // If we were replacing a message (for annotations), create the version now
@@ -691,16 +688,18 @@ export const processMessages = async () => {
     }, abortController);
   } catch (error) {
     if (error instanceof Error && error.name === 'AbortError') {
-      // Only set loading to false if this is still the current request
+      console.log('Request was aborted');
+      // Only set state to idle if this is still the current request
       const currentState = useConversationStore.getState();
       if (currentState.currentAbortController === abortController) {
-        setAssistantLoading(false);
+        setChatState('idle');
       }
     } else {
-      // Only set loading to false if this is still the current request
+      console.error('Error in processMessages:', error);
+      // Only set state to idle if this is still the current request
       const currentState = useConversationStore.getState();
       if (currentState.currentAbortController === abortController) {
-        setAssistantLoading(false);
+        setChatState('idle');
       }
     }
   } finally {

@@ -36,16 +36,7 @@ const Chat: React.FC<ChatProps> = ({
   const [isComposing, setIsComposing] = useState(false);
   const [messageAnnotations, setMessageAnnotations] = useState<Record<number, TextAnnotation[]>>({});
   const [isInAnnotationMode, setIsInAnnotationMode] = useState(false);
-  const { isAssistantLoading } = useConversationStore();
-
-  // Log when loading animation appears/disappears in the UI
-  useEffect(() => {
-    if (isAssistantLoading) {
-      console.log('[Loading Animation] Loading animation is now VISIBLE');
-    } else {
-      console.log('[Loading Animation] Loading animation is now HIDDEN');
-    }
-  }, [isAssistantLoading]);
+  const { chatState, abortCurrentRequest } = useConversationStore();
 
   const scrollToBottom = () => {
     itemsEndRef.current?.scrollIntoView({ behavior: "instant" });
@@ -119,10 +110,15 @@ Respond with full message. Do not mention annotations themselves or the fact use
       }
     });
     
+    
     // Then send the message
     onSendMessage(messageToSend, isInAnnotationMode ? annotatedMessageIndex : undefined);
     setInputMessageText("");
   }, [inputMessageText, messageAnnotations, onSendMessage, isInAnnotationMode]);
+
+  const handleStopGeneration = useCallback(() => {
+    abortCurrentRequest();
+  }, [abortCurrentRequest]);
 
   const handleKeyDown = useCallback(
     (event: React.KeyboardEvent<HTMLTextAreaElement>) => {
@@ -198,7 +194,7 @@ Respond with full message. Do not mention annotations themselves or the fact use
                   </React.Fragment>
                 );
               })}
-            {isAssistantLoading && <LoadingMessage />}
+            {chatState === 'waiting_for_assistant' && <LoadingMessage />}
             <div ref={itemsEndRef} />
           </div>
         </div>
@@ -220,34 +216,63 @@ Respond with full message. Do not mention annotations themselves or the fact use
                       placeholder="Message..."
                       className="mb-2 resize-none border-0 focus:outline-none text-sm bg-transparent px-0 pb-6 pt-2"
                       value={inputMessageText}
-                      onChange={(e) => setInputMessageText(e.target.value)}
+                      onChange={(e) => {
+                        setInputMessageText(e.target.value);
+                      }}
                       onKeyDown={handleKeyDown}
                       onCompositionStart={() => setIsComposing(true)}
                       onCompositionEnd={() => setIsComposing(false)}
                     />
                   </div>
-                  <button
-                    disabled={!inputMessageText && !isInAnnotationMode}
-                    data-testid="send-button"
-                    className="flex size-8 items-end justify-center rounded-full bg-black text-white transition-colors hover:opacity-70 focus-visible:outline-none focus-visible:outline-black disabled:bg-[#D7D7D7] disabled:text-[#f4f4f4] disabled:hover:opacity-100"
-                    onClick={handleSendMessage}
-                  >
-                    <svg
-                      xmlns="http://www.w3.org/2000/svg"
-                      width="32"
-                      height="32"
-                      fill="none"
-                      viewBox="0 0 32 32"
-                      className="icon-2xl"
+                  {/* Show stop button when assistant is responding and user has no content to send */}
+                  {(chatState === 'assistant_responding' || chatState === 'waiting_for_assistant') && !inputMessageText && !isInAnnotationMode ? (
+                    <button
+                      data-testid="stop-button"
+                      className="flex size-8 items-end justify-center rounded-full bg-red-600 text-white transition-colors hover:opacity-70 focus-visible:outline-none focus-visible:outline-red-600"
+                      onClick={handleStopGeneration}
                     >
-                      <path
-                        fill="currentColor"
-                        fillRule="evenodd"
-                        d="M15.192 8.906a1.143 1.143 0 0 1 1.616 0l5.143 5.143a1.143 1.143 0 0 1-1.616 1.616l-3.192-3.192v9.813a1.143 1.143 0 0 1-2.286 0v-9.813l-3.192 3.192a1.143 1.143 0 1 1-1.616-1.616z"
-                        clipRule="evenodd"
-                      />
-                    </svg>
-                  </button>
+                      <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        width="32"
+                        height="32"
+                        fill="none"
+                        viewBox="0 0 32 32"
+                        className="icon-2xl"
+                      >
+                        <rect
+                          width="12"
+                          height="12"
+                          x="10"
+                          y="10"
+                          fill="currentColor"
+                          rx="2"
+                        />
+                      </svg>
+                    </button>
+                  ) : (
+                    <button
+                      disabled={!inputMessageText && !isInAnnotationMode}
+                      data-testid="send-button"
+                      className="flex size-8 items-end justify-center rounded-full bg-black text-white transition-colors hover:opacity-70 focus-visible:outline-none focus-visible:outline-black disabled:bg-[#D7D7D7] disabled:text-[#f4f4f4] disabled:hover:opacity-100"
+                      onClick={handleSendMessage}
+                    >
+                      <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        width="32"
+                        height="32"
+                        fill="none"
+                        viewBox="0 0 32 32"
+                        className="icon-2xl"
+                      >
+                        <path
+                          fill="currentColor"
+                          fillRule="evenodd"
+                          d="M15.192 8.906a1.143 1.143 0 0 1 1.616 0l5.143 5.143a1.143 1.143 0 0 1-1.616 1.616l-3.192-3.192v9.813a1.143 1.143 0 0 1-2.286 0v-9.813l-3.192 3.192a1.143 1.143 0 1 1-1.616-1.616z"
+                          clipRule="evenodd"
+                        />
+                      </svg>
+                    </button>
+                  )}
                 </div>
               </div>
             </div>
