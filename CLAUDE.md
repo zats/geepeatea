@@ -12,6 +12,7 @@ This is a Next.js 15 starter application for the OpenAI Responses API. It provid
 - **Build**: `npm run build`
 - **Production server**: `npm start`
 - **Linting**: `npm run lint`
+- **TypeScript check**: `npx tsc --noEmit` (avoid using this, prefer npm run lint)
 
 Note: This project uses npm/npm-lock.json (not pnpm despite user preference).
 

@@ -34,6 +34,7 @@ export interface MessageItem {
   versions?: MessageVersion[]; // All versions of this message
   currentVersionId?: string; // Which version is currently selected
   isAnnotationRequest?: boolean; // Flag to mark annotation requests that shouldn't be shown in UI
+  isPlaceholder?: boolean; // Flag to mark the initial placeholder message
 }
 
 // Custom items to display in chat

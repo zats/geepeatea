@@ -40,6 +40,7 @@ const useConversationStore = create<ConversationState>((set) => ({
       type: "message",
       role: "assistant",
       content: [{ type: "output_text", text: INITIAL_MESSAGE }],
+      isPlaceholder: true,
     },
   ],
   conversationItems: [],

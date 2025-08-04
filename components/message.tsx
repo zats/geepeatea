@@ -50,6 +50,12 @@ const Message = React.forwardRef<{ clearAnnotations: () => void; editAnnotation:
 
 
   const handleContextMenu = (e: React.MouseEvent) => {
+    // Don't show context menu for the initial placeholder message
+    if (message.isPlaceholder) {
+      e.preventDefault();
+      return;
+    }
+    
     e.preventDefault();
     setContextMenu({ x: e.clientX, y: e.clientY });
   };
@@ -112,6 +118,11 @@ const Message = React.forwardRef<{ clearAnnotations: () => void; editAnnotation:
 
   const handleTextSelection = () => {
     if (message.role !== "assistant") return;
+    
+    // Don't allow annotations on the initial placeholder message
+    if (message.isPlaceholder) {
+      return;
+    }
     
     const selection = window.getSelection();
     if (!selection || selection.isCollapsed) {
