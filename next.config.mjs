@@ -6,8 +6,8 @@ const nextConfig = {
   images: {
     unoptimized: true,
   },
-  assetPrefix: process.env.NODE_ENV === 'production' ? '/openai-responses-starter-app' : '',
-  basePath: process.env.NODE_ENV === 'production' ? '/openai-responses-starter-app' : '',
+  assetPrefix: process.env.NODE_ENV === 'production' ? '/geepeatea' : '',
+  basePath: process.env.NODE_ENV === 'production' ? '/geepeatea' : '',
   // Skip API routes during static export
   exportPathMap: async function (
     defaultPathMap,
