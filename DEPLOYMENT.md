@@ -60,8 +60,8 @@ git push origin main
 
 ### Local Development vs Production
 
-- **Development**: Run `npm run dev` - all features work
-- **Production Build**: Run `npm run build` - static export without API routes
+- **Development**: Run `pnpm dev` - all features work
+- **Production Build**: Run `pnpm build` - static export without API routes
 - **GitHub Pages**: Automatically deploys static build on push to main
 
 ## Troubleshooting
@@ -69,7 +69,7 @@ git push origin main
 ### Build Failures
 - Check the Actions tab for error logs
 - Ensure all dependencies are properly installed
-- Verify that the build works locally with `npm run build`
+- Verify that the build works locally with `pnpm build`
 
 ### Site Not Loading
 - Check that GitHub Pages is enabled
@@ -86,7 +86,7 @@ If you prefer manual deployment:
 
 ```bash
 # Build the static site
-npm run build
+pnpm build
 
 # The output will be in the 'out' directory
 # Upload the contents of 'out' to any static hosting service
