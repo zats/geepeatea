@@ -194,7 +194,7 @@ const QuestionModal: React.FC<QuestionModalProps> = ({
                         : isAnimatingIn
                         ? 'opacity-0 translate-y-2 scale-95'
                         : 'opacity-100 translate-y-0 scale-100'
-                    }`} style={{ transitionDelay: isClosing ? '0ms' : '50ms' }}>
+                    }`} style={{ transitionDelay: isClosing ? '150ms' : '0ms' }}>
                       <div className="text-xs text-gray-500 mb-1">Context:</div>
                       {renderHighlightedContextMessage(contextMessage)}
                     </div>
@@ -206,7 +206,7 @@ const QuestionModal: React.FC<QuestionModalProps> = ({
                         : isAnimatingIn
                         ? 'opacity-0 translate-y-2 scale-95'
                         : 'opacity-100 translate-y-0 scale-100'
-                    }`} style={{ transitionDelay: isClosing ? '0ms' : '100ms' }}>
+                    }`} style={{ transitionDelay: isClosing ? '100ms' : '50ms' }}>
                       {question}
                     </div>
 
@@ -216,7 +216,7 @@ const QuestionModal: React.FC<QuestionModalProps> = ({
                         isClosing 
                           ? 'opacity-0 translate-y-2 scale-95' 
                           : 'opacity-100 translate-y-0 scale-100'
-                      }`} style={{ transitionDelay: isClosing ? '0ms' : '150ms' }}>
+                      }`} style={{ transitionDelay: isClosing ? '50ms' : '100ms' }}>
                         <LoadingMessage dotColor="bg-white" />
                       </div>
                     ) : response ? (
@@ -224,7 +224,7 @@ const QuestionModal: React.FC<QuestionModalProps> = ({
                         isClosing 
                           ? 'opacity-0 translate-y-2 scale-95' 
                           : 'opacity-100 translate-y-0 scale-100'
-                      }`} style={{ transitionDelay: isClosing ? '0ms' : '150ms' }}>
+                      }`} style={{ transitionDelay: isClosing ? '0ms' : '100ms' }}>
                         <ReactMarkdown className="reader-content">{response}</ReactMarkdown>
                       </div>
                     ) : null}
@@ -245,7 +245,7 @@ const QuestionModal: React.FC<QuestionModalProps> = ({
                         : isAnimatingIn
                         ? 'opacity-0 translate-y-2 scale-95'
                         : 'opacity-100 translate-y-0 scale-100'
-                    }`} style={{ transitionDelay: isClosing ? '0ms' : '50ms' }}>
+                    }`} style={{ transitionDelay: isClosing ? '100ms' : '0ms' }}>
                       <div className="text-xs text-gray-500 mb-1">Context:</div>
                       {renderHighlightedContextMessage(contextMessage)}
                     </div>
@@ -257,7 +257,7 @@ const QuestionModal: React.FC<QuestionModalProps> = ({
                           isClosing 
                             ? 'opacity-0 translate-y-2 scale-95' 
                             : 'opacity-100 translate-y-0 scale-100'
-                        }`} style={{ transitionDelay: isClosing ? '0ms' : '100ms' }}>
+                        }`} style={{ transitionDelay: isClosing ? '0ms' : '50ms' }}>
                           <div className="flex items-end gap-1.5 md:gap-2 pl-4">
                             <div className="flex min-w-0 flex-1 flex-col">
                               <textarea
