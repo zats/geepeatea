@@ -38,6 +38,15 @@ const Chat: React.FC<ChatProps> = ({
   const [isInAnnotationMode, setIsInAnnotationMode] = useState(false);
   const { isAssistantLoading } = useConversationStore();
 
+  // Log when loading animation appears/disappears in the UI
+  useEffect(() => {
+    if (isAssistantLoading) {
+      console.log('[Loading Animation] Loading animation is now VISIBLE');
+    } else {
+      console.log('[Loading Animation] Loading animation is now HIDDEN');
+    }
+  }, [isAssistantLoading]);
+
   const scrollToBottom = () => {
     itemsEndRef.current?.scrollIntoView({ behavior: "instant" });
   };

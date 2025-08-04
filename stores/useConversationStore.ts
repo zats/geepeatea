@@ -53,7 +53,10 @@ const useConversationStore = create<ConversationState>((set) => ({
     set((state) => ({
       conversationItems: [...state.conversationItems, message],
     })),
-  setAssistantLoading: (loading) => set({ isAssistantLoading: loading }),
+  setAssistantLoading: (loading) => {
+    console.log(`[Loading State] Setting isAssistantLoading to: ${loading}`);
+    set({ isAssistantLoading: loading });
+  },
   deleteChatMessage: (index) =>
     set((state) => {
       const newChatMessages = [...state.chatMessages];
@@ -205,6 +208,7 @@ const useConversationStore = create<ConversationState>((set) => ({
   abortCurrentRequest: () => {
     const state = useConversationStore.getState();
     if (state.currentAbortController) {
+      console.log('[Loading State] Aborting request and setting isAssistantLoading to: false');
       state.currentAbortController.abort();
       set({ currentAbortController: null, isAssistantLoading: false });
     }

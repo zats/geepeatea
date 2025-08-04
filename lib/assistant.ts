@@ -165,6 +165,9 @@ export const processMessages = async () => {
     createMessageVersion,
   } = useConversationStore.getState();
 
+  // Set loading state at the beginning of processing
+  setAssistantLoading(true);
+
   // Create new AbortController for this request
   const abortController = new AbortController();
   setCurrentAbortController(abortController);
@@ -209,6 +212,12 @@ export const processMessages = async () => {
 
         // UPDATE CONVERSATIONITEMS WITH EVERY DELTA AND PERSIST TO STORE
         if (assistantMessageContent.trim().length > 0) {
+          // Only hide loading indicator if this is still the current request
+          const currentState = useConversationStore.getState();
+          if (currentState.currentAbortController === abortController) {
+            setAssistantLoading(false);
+          }
+          
           let updated = false;
           
           if (messageToReplaceIndex !== null) {
@@ -291,7 +300,7 @@ export const processMessages = async () => {
         }
 
         setChatMessages([...chatMessages]);
-        setAssistantLoading(false);
+        // Don't set loading to false here - wait for response.completed
         break;
       }
 
@@ -301,7 +310,7 @@ export const processMessages = async () => {
         if (!item || !item.type) {
           break;
         }
-        setAssistantLoading(false);
+        // Don't set loading to false here - wait for response.completed
         // Handle differently depending on the item type
         switch (item.type) {
           case "message": {
@@ -623,6 +632,7 @@ export const processMessages = async () => {
 
       case "response.completed": {
         console.log("response completed", data);
+        // Don't set loading to false here anymore - it's already hidden when first content arrives
         const { response } = data;
 
         // If we were replacing a message (for annotations), create the version now
@@ -681,11 +691,17 @@ export const processMessages = async () => {
     }, abortController);
   } catch (error) {
     if (error instanceof Error && error.name === 'AbortError') {
-      console.log('Request was aborted');
-      setAssistantLoading(false);
+      // Only set loading to false if this is still the current request
+      const currentState = useConversationStore.getState();
+      if (currentState.currentAbortController === abortController) {
+        setAssistantLoading(false);
+      }
     } else {
-      console.error('Error in processMessages:', error);
-      setAssistantLoading(false);
+      // Only set loading to false if this is still the current request
+      const currentState = useConversationStore.getState();
+      if (currentState.currentAbortController === abortController) {
+        setAssistantLoading(false);
+      }
     }
   } finally {
     // Clear the abort controller when done

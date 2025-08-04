@@ -71,6 +71,7 @@ export default function Assistant() {
       approval_request_id: id,
     } as any;
     try {
+      setAssistantLoading(true);
       addConversationItem(approvalItem);
       await processMessages();
     } catch (error) {
