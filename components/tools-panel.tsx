@@ -22,7 +22,11 @@ export default function ContextPanel() {
   } = useToolsStore();
   return (
     <div className="h-full p-8 w-full bg-[#f9f9f9] rounded-t-xl md:rounded-none border-l-1 border-stone-100">
-      <div className="flex flex-col overflow-y-scroll h-full">
+      <div className="flex flex-col h-full">
+        <div className="mb-6">
+          <h2 className="text-xl font-semibold text-gray-900">Settings</h2>
+        </div>
+        <div className="flex flex-col overflow-y-scroll flex-1">
         <PanelConfig
           title="File Search"
           tooltip="Allows to search a knowledge base (vector store)"
@@ -61,6 +65,7 @@ export default function ContextPanel() {
         >
           <McpConfig />
         </PanelConfig>
+        </div>
       </div>
     </div>
   );
