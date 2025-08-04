@@ -34,7 +34,12 @@ export default function Assistant() {
       // If annotations exist, set the message to replace
       if (annotatedMessageIndex !== undefined) {
         setMessageToReplaceIndex(annotatedMessageIndex);
+      } else {
+        setMessageToReplaceIndex(null);
       }
+      
+      // Log store state after setting
+      const currentState = useConversationStore.getState();
       
       // For annotation requests, temporarily add to conversationItems for processing
       if (isAnnotationRequest) {

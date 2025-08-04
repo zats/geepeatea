@@ -333,7 +333,7 @@ export const processMessages = async () => {
                 if (assistantConversationIndex !== -1) {
                   conversationItems[assistantConversationIndex].content = text;
                 } else {
-                  console.log(`⚠️ [Assistant] Could not find existing assistant message in conversationItems to update`);
+                  console.warn(`[Assistant] Could not find existing assistant message in conversationItems to update`);
                 }
               } else {
                 // Normal flow: find existing assistant message or create new one

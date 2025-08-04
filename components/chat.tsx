@@ -31,10 +31,11 @@ const Chat: React.FC<ChatProps> = ({
 }) => {
   const itemsEndRef = useRef<HTMLDivElement>(null);
   const messageRefs = useRef<Record<number, { clearAnnotations: () => void }>>({});
-  const [inputMessageText, setinputMessageText] = useState<string>("");
+  const [inputMessageText, setInputMessageText] = useState<string>("");
   // This state is used to provide better user experience for non-English IMEs such as Japanese
   const [isComposing, setIsComposing] = useState(false);
   const [messageAnnotations, setMessageAnnotations] = useState<Record<number, TextAnnotation[]>>({});
+  const [isInAnnotationMode, setIsInAnnotationMode] = useState(false);
   const { isAssistantLoading } = useConversationStore();
 
   const scrollToBottom = () => {
@@ -42,11 +43,27 @@ const Chat: React.FC<ChatProps> = ({
   };
 
   const handleAnnotationsChange = useCallback((messageIndex: number, annotations: TextAnnotation[]) => {
-    setMessageAnnotations(prev => ({
-      ...prev,
-      [messageIndex]: annotations
-    }));
-  }, []);
+    setMessageAnnotations(prev => {
+      const newState = {
+        ...prev,
+        [messageIndex]: annotations
+      };
+      
+      // Check if there are any annotations across all messages
+      const hasAnyAnnotations = Object.values(newState).some(msgAnnotations => msgAnnotations.length > 0);
+      
+      // Set annotation mode to true if we have any annotations
+      if (hasAnyAnnotations && !isInAnnotationMode) {
+        setIsInAnnotationMode(true);
+      }
+      // Set to false if all annotations were removed
+      else if (!hasAnyAnnotations && isInAnnotationMode) {
+        setIsInAnnotationMode(false);
+      }
+      
+      return newState;
+    });
+  }, [isInAnnotationMode]);
 
   const formatAnnotationsForMessage = (inputText: string): string => {
     const allAnnotations = Object.values(messageAnnotations).flat();
@@ -69,33 +86,34 @@ Annotations list:
     formattedMessage += `
 
 Respond with full message. Do not mention annotations themselves or the fact user created them requesting changes.`;
-
-    console.log("Formatted message with annotations:", formattedMessage);
-
     return formattedMessage.trim();
   };
 
   const handleSendMessage = useCallback(() => {
     const messageToSend = formatAnnotationsForMessage(inputMessageText);
     
-    // Find which message has annotations (if any)
-    const annotatedMessageIndex = Object.keys(messageAnnotations).length > 0 
+    // Find which message has annotations (if any) - only if there are actual annotations
+    const hasAnnotations = Object.keys(messageAnnotations).length > 0;
+    const annotatedMessageIndex = hasAnnotations 
       ? Math.max(...Object.keys(messageAnnotations).map(Number))
       : undefined;
-    
-    onSendMessage(messageToSend, annotatedMessageIndex);
-    setinputMessageText("");
-    
-    // Clear all annotations after sending
+        
+    // Clear annotations FIRST - this makes composer background white immediately
     setMessageAnnotations({});
-    
-    // Clear annotations from all assistant message components
+    // Reset annotation mode when sending message
+    if (isInAnnotationMode) {
+      setIsInAnnotationMode(false);
+    }
     Object.values(messageRefs.current).forEach(messageRef => {
       if (messageRef && messageRef.clearAnnotations) {
         messageRef.clearAnnotations();
       }
     });
-  }, [inputMessageText, messageAnnotations, onSendMessage]);
+    
+    // Then send the message
+    onSendMessage(messageToSend, isInAnnotationMode ? annotatedMessageIndex : undefined);
+    setInputMessageText("");
+  }, [inputMessageText, messageAnnotations, onSendMessage, isInAnnotationMode]);
 
   const handleKeyDown = useCallback(
     (event: React.KeyboardEvent<HTMLTextAreaElement>) => {
@@ -178,7 +196,11 @@ Respond with full message. Do not mention annotations themselves or the fact use
         <div className="flex-1 p-4 px-10">
           <div className="flex items-center">
             <div className="flex w-full items-center pb-4 md:pb-1">
-              <div className="flex w-full flex-col gap-1.5 rounded-[20px] p-2.5 pl-1.5 transition-colors bg-white border border-stone-200 shadow-sm">
+              <div className={`flex w-full flex-col gap-1.5 rounded-[20px] p-2.5 pl-1.5 transition-colors border border-stone-200 shadow-sm ${
+                isInAnnotationMode 
+                  ? 'bg-yellow-50 border-yellow-200' 
+                  : 'bg-white'
+              }`}>
                 <div className="flex items-end gap-1.5 md:gap-2 pl-4">
                   <div className="flex min-w-0 flex-1 flex-col">
                     <textarea
@@ -189,14 +211,14 @@ Respond with full message. Do not mention annotations themselves or the fact use
                       placeholder="Message..."
                       className="mb-2 resize-none border-0 focus:outline-none text-sm bg-transparent px-0 pb-6 pt-2"
                       value={inputMessageText}
-                      onChange={(e) => setinputMessageText(e.target.value)}
+                      onChange={(e) => setInputMessageText(e.target.value)}
                       onKeyDown={handleKeyDown}
                       onCompositionStart={() => setIsComposing(true)}
                       onCompositionEnd={() => setIsComposing(false)}
                     />
                   </div>
                   <button
-                    disabled={!inputMessageText && Object.keys(messageAnnotations).length === 0}
+                    disabled={!inputMessageText && !isInAnnotationMode}
                     data-testid="send-button"
                     className="flex size-8 items-end justify-center rounded-full bg-black text-white transition-colors hover:opacity-70 focus-visible:outline-none focus-visible:outline-black disabled:bg-[#D7D7D7] disabled:text-[#f4f4f4] disabled:hover:opacity-100"
                     onClick={handleSendMessage}
