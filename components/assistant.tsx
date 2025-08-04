@@ -14,10 +14,14 @@ export default function Assistant() {
     // Abort any current request before starting a new one
     abortCurrentRequest();
 
+    // Check if this message contains annotation requests
+    const isAnnotationRequest = annotatedMessageIndex !== undefined;
+
     const userItem: Item = {
       type: "message",
       role: "user",
       content: [{ type: "input_text", text: message.trim() }],
+      isAnnotationRequest,
     };
     const userMessage: any = {
       role: "user",
@@ -32,9 +36,21 @@ export default function Assistant() {
         setMessageToReplaceIndex(annotatedMessageIndex);
       }
       
-      addConversationItem(userMessage);
-      addChatMessage(userItem);
-      await processMessages();
+      // For annotation requests, temporarily add to conversationItems for processing
+      if (isAnnotationRequest) {
+        addConversationItem(userMessage);
+        addChatMessage(userItem);
+        await processMessages();
+        // Remove the annotation request from conversationItems after processing
+        const { conversationItems, setConversationItems } = useConversationStore.getState();
+        const filteredItems = conversationItems.filter((_, index) => index !== conversationItems.length - 1);
+        setConversationItems(filteredItems);
+      } else {
+        // Normal message flow
+        addConversationItem(userMessage);
+        addChatMessage(userItem);
+        await processMessages();
+      }
     } catch (error) {
       console.error("Error processing message:", error);
     }

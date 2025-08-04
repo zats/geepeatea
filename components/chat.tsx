@@ -118,6 +118,11 @@ Respond with full message. Do not mention annotations themselves or the fact use
           <div className="mt-auto space-y-5 pt-4">
 {items
               .filter((item, index) => {
+                // Filter out annotation request messages from UI display
+                if (item.type === "message" && item.isAnnotationRequest) {
+                  return false;
+                }
+                
                 // Filter out consecutive web searches, keeping only the latest one
                 if (item.type === "tool_call" && item.tool_type === "web_search_call") {
                   // Check if the next item is also a web search

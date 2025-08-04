@@ -33,6 +33,7 @@ export interface MessageItem {
   content: ContentItem[]; // Current/displayed content
   versions?: MessageVersion[]; // All versions of this message
   currentVersionId?: string; // Which version is currently selected
+  isAnnotationRequest?: boolean; // Flag to mark annotation requests that shouldn't be shown in UI
 }
 
 // Custom items to display in chat
@@ -307,17 +308,21 @@ export const processMessages = async () => {
             const text = item.content?.text || "";
             const annotations =
               item.content?.annotations?.map(normalizeAnnotation) || [];
-            chatMessages.push({
-              type: "message",
-              role: "assistant",
-              content: [
-                {
-                  type: "output_text",
-                  text,
-                  ...(annotations.length > 0 ? { annotations } : {}),
-                },
-              ],
-            });
+            
+            // Only add the message if it has actual content or if we're not in replacement mode
+            if (text.trim().length > 0 || messageToReplaceIndex === null) {
+              chatMessages.push({
+                type: "message",
+                role: "assistant",
+                content: [
+                  {
+                    type: "output_text",
+                    text,
+                    ...(annotations.length > 0 ? { annotations } : {}),
+                  },
+                ],
+              });
+            }
             // Only add to conversationItems when we have actual content
             if (text.trim().length > 0) {
               if (messageToReplaceIndex !== null) {
@@ -327,7 +332,6 @@ export const processMessages = async () => {
                 );
                 if (assistantConversationIndex !== -1) {
                   conversationItems[assistantConversationIndex].content = text;
-                  console.log(`🔄 STREAMING UPDATE [${text.length} chars]: Updated existing assistant message during replacement`);
                 } else {
                   console.log(`⚠️ [Assistant] Could not find existing assistant message in conversationItems to update`);
                 }
@@ -340,14 +344,12 @@ export const processMessages = async () => {
                 if (existingAssistantIndex !== -1) {
                   // Update existing assistant message
                   conversationItems[existingAssistantIndex].content = text;
-                  console.log(`🔄 STREAMING UPDATE [${text.length} chars]: Updated existing assistant message`);
                 } else {
                   // Create new assistant message
                   conversationItems.push({
                     role: "assistant",
                     content: text,
                   });
-                  console.log(`✅ STREAMING CREATE [${text.length} chars]: Created new assistant message`);
                 }
               }
             }
