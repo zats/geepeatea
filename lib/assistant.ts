@@ -1,10 +1,8 @@
 import { DEVELOPER_PROMPT } from "@/config/constants";
 import { parse } from "partial-json";
-import { handleTool } from "@/lib/tools/tools-handling";
 import useConversationStore from "@/stores/useConversationStore";
 import { getTools } from "./tools/tools";
 import { Annotation } from "@/components/annotations";
-import { functionsMap } from "@/config/functions";
 
 const normalizeAnnotation = (annotation: any): Annotation => ({
   ...annotation,
@@ -371,7 +369,7 @@ export const processMessages = async () => {
               tool_type: "function_call",
               status: "in_progress",
               id: item.id,
-              name: item.name, // function name,e.g. "get_weather"
+              name: item.name, // function name
               arguments: item.arguments || "",
               parsedArguments: {},
               output: null,
@@ -450,26 +448,10 @@ export const processMessages = async () => {
           toolCallMessage.type === "tool_call" &&
           toolCallMessage.tool_type === "function_call"
         ) {
-          // Handle tool call (execute function)
-          const toolResult = await handleTool(
-            toolCallMessage.name as keyof typeof functionsMap,
-            toolCallMessage.parsedArguments
-          );
-
-          // Record tool output
-          toolCallMessage.output = JSON.stringify(toolResult);
+          // No function calls available - mark as failed
+          toolCallMessage.output = "No function calls available";
+          toolCallMessage.status = "failed";
           setChatMessages([...chatMessages]);
-          const toolOutputItem = {
-            type: "function_call_output",
-            call_id: toolCallMessage.call_id,
-            status: "completed",
-            output: JSON.stringify(toolResult),
-          };
-          conversationItems.push(toolOutputItem);
-          setConversationItems([...conversationItems]);
-
-          // Create another turn after tool output has been added
-          await processMessages();
         }
         if (
           toolCallMessage &&
