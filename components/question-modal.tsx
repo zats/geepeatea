@@ -37,7 +37,7 @@ const QuestionModal: React.FC<QuestionModalProps> = ({
   // Function to render text with inline selection highlighting
   const renderHighlightedContextMessage = (text: string) => {
     if (!selectedText || selectionStart === undefined || selectionEnd === undefined) {
-      return <ReactMarkdown>{text}</ReactMarkdown>;
+      return <ReactMarkdown className="reader-content">{text}</ReactMarkdown>;
     }
 
     const beforeSelection = text.slice(0, selectionStart);
@@ -225,7 +225,7 @@ const QuestionModal: React.FC<QuestionModalProps> = ({
                           ? 'opacity-0 translate-y-2 scale-95' 
                           : 'opacity-100 translate-y-0 scale-100'
                       }`} style={{ transitionDelay: isClosing ? '0ms' : '150ms' }}>
-                        <ReactMarkdown>{response}</ReactMarkdown>
+                        <ReactMarkdown className="reader-content">{response}</ReactMarkdown>
                       </div>
                     ) : null}
                   </div>

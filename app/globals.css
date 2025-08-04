@@ -123,3 +123,166 @@
     display: none;
   }
 }
+
+/* Safari Reader-inspired typography and content styles */
+@layer components {
+  /* Typography hierarchy */
+  .reader-content h1, .reader-content h2, .reader-content h3, .reader-content h4, .reader-content h5, .reader-content h6 {
+    font-weight: bold;
+  }
+  
+  .reader-content h1 {
+    font-size: 1.5em;
+    line-height: 1.4em;
+  }
+  
+  .reader-content h2 {
+    font-size: 1.43em;
+  }
+  
+  .reader-content h3 {
+    font-size: 1.25em;
+  }
+  
+  .reader-content h4, .reader-content h5, .reader-content h6 {
+    font-size: 1em;
+    margin: 1em 0;
+  }
+
+  /* Links */
+  .reader-content a {
+    text-decoration: none;
+  }
+
+  .reader-content a[href] {
+    color: rgb(65, 110, 210);
+  }
+
+  /* Text rendering */
+  .reader-content {
+    text-rendering: optimizeLegibility;
+    text-align: start;
+    word-wrap: break-word;
+  }
+
+  .reader-content * {
+    max-width: 100%;
+  }
+
+  /* Images */
+  .reader-content img {
+    margin: 0.5em auto;
+    display: block;
+    height: auto;
+  }
+
+  .reader-content img.reader-image-tiny {
+    display: inline;
+    margin: 0;
+  }
+
+  /* Code blocks */
+  .reader-content pre {
+    font-family: ui-monospace, SFMono-Regular, "SF Mono", Monaco, Menlo, Consolas, "Liberation Mono", "Courier New", monospace;
+    font-size: 0.87em;
+    line-height: 1.45em;
+  }
+
+  /* Blockquotes */
+  .reader-content blockquote, .reader-content q {
+    color: rgba(0, 0, 0, 0.65);
+  }
+
+  .reader-content blockquote:not(.pullquote) {
+    margin-left: 2px;
+    margin-right: 6px;
+    padding-left: 16px;
+  }
+
+  .reader-content blockquote:not(.simple):not(.pullquote) {
+    border-left: 3px solid rgba(0, 0, 0, 0.1);
+  }
+
+  /* Tables */
+  .reader-content table {
+    font-size: 0.9em;
+    text-align: start;
+    word-wrap: break-word;
+    border-collapse: collapse;
+  }
+
+  .reader-content table td, .reader-content table th {
+    padding: 0.25em 0.5em;
+    border: 1px solid rgb(216, 216, 216);
+  }
+
+  .reader-content table th {
+    background-color: rgba(0, 0, 0, 0.025);
+  }
+
+  /* Lists */
+  .reader-content ol {
+    padding: 0 0 0 35px;
+  }
+
+  .reader-content ul {
+    padding: 0 0 0 20px;
+  }
+
+  .reader-content li {
+    margin: 0.8em 0;
+  }
+
+  /* Horizontal rules */
+  .reader-content hr {
+    background: rgba(0, 0, 0, 0.2);
+    height: 1px;
+    border: 0;
+  }
+
+  /* Subscript and superscript */
+  .reader-content sup, .reader-content sub {
+    line-height: 1;
+    font-size: 0.75em;
+  }
+
+  /* Collapse excess whitespace */
+  .reader-content p > p:empty,
+  .reader-content div > p:empty,
+  .reader-content p > div:empty,
+  .reader-content div > div:empty,
+  .reader-content p + br,
+  .reader-content img + br {
+    display: none;
+  }
+
+  /* macOS Puff Animation */
+  @keyframes puff-out {
+    0% { 
+      transform: scale(1);
+      opacity: 1;
+      filter: blur(0px);
+    }
+    50% { 
+      transform: scale(1.4);
+      opacity: 0.3;
+      filter: blur(2px);
+    }
+    100% { 
+      transform: scale(1.8);
+      opacity: 0;
+      filter: blur(4px);
+    }
+  }
+
+  .puff-animation {
+    animation: puff-out 0.6s cubic-bezier(0.55, 0.055, 0.675, 0.19) forwards;
+    pointer-events: none;
+  }
+
+  .message-deleting {
+    opacity: 0.3;
+    pointer-events: none;
+    transition: opacity 0.3s ease-out;
+  }
+}
