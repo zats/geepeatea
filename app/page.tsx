@@ -2,12 +2,26 @@
 import Assistant from "@/components/assistant";
 import ToolsPanel from "@/components/tools-panel";
 import { Menu, X, Settings, PenSquare } from "lucide-react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import useConversationStore from "@/stores/useConversationStore";
+import useToolsStore from "@/stores/useToolsStore";
 
 export default function Main() {
   const [isToolsPanelOpen, setIsToolsPanelOpen] = useState(false);
+  const [highlightApiKey, setHighlightApiKey] = useState(false);
   const { clearConversation } = useConversationStore();
+  const { apiKey } = useToolsStore();
+
+  // Check for API key on page load
+  useEffect(() => {
+    if (!apiKey || apiKey.trim() === '') {
+      setIsToolsPanelOpen(true);
+      setHighlightApiKey(true);
+    } else {
+      setHighlightApiKey(false);
+      setIsToolsPanelOpen(false);
+    }
+  }, [apiKey]);
 
   const handleNewConversation = () => {
     clearConversation();
@@ -57,7 +71,7 @@ export default function Main() {
       <div className={`hidden md:block fixed top-0 right-0 h-full w-[30%] z-30 transform transition-transform duration-300 ease-in-out ${
         isToolsPanelOpen ? 'translate-x-0' : 'translate-x-full'
       }`}>
-        <ToolsPanel />
+        <ToolsPanel highlightApiKey={highlightApiKey} />
       </div>
 
       {/* Mobile overlay panel */}
@@ -71,7 +85,7 @@ export default function Main() {
           isToolsPanelOpen ? 'translate-x-0' : 'translate-x-full'
         }`}>
           <div className="p-4 h-full">
-            <ToolsPanel />
+            <ToolsPanel highlightApiKey={highlightApiKey} />
           </div>
         </div>
       </div>

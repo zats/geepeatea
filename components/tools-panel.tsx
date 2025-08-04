@@ -5,7 +5,7 @@ import ApiKeyConfig from "./api-key-config";
 import PanelConfig from "./panel-config";
 import useToolsStore from "@/stores/useToolsStore";
 
-export default function ContextPanel() {
+export default function ContextPanel({ highlightApiKey = false }: { highlightApiKey?: boolean }) {
   const {
     webSearchEnabled,
     setWebSearchEnabled,
@@ -22,6 +22,7 @@ export default function ContextPanel() {
         <PanelConfig
           title="API Key"
           tooltip="OpenAI API key for authentication"
+          highlightError={highlightApiKey}
         >
           <ApiKeyConfig />
         </PanelConfig>

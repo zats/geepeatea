@@ -10,12 +10,14 @@ export default function PanelConfig({
   tooltip,
   enabledTuple,
   disabled,
+  highlightError,
   children,
 }: {
   title: string;
   tooltip: string;
   enabledTuple?: {value: boolean, setValue: (value: boolean) => void};
   disabled?: boolean;
+  highlightError?: boolean;
   children?: React.ReactNode;
 }) {
   const handleToggle = () => {
@@ -28,12 +30,12 @@ export default function PanelConfig({
   };
 
   return (
-    <div className="space-y-4 mb-6">
+    <div className={`space-y-4 mb-6 ${highlightError ? 'p-3 border-2 border-red-500 rounded-lg bg-red-50' : ''}`}>
       <div className="flex justify-between items-center">
         <TooltipProvider>
           <Tooltip>
             <TooltipTrigger asChild>
-              <h1 className="text-black font-medium">{title}</h1>
+              <h1 className={`font-medium ${highlightError ? 'text-red-700' : 'text-black'}`}>{title}</h1>
             </TooltipTrigger>
             <TooltipContent>
               <p>{tooltip}</p>
