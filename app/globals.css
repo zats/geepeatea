@@ -285,4 +285,130 @@
     pointer-events: none;
     transition: opacity 0.3s ease-out;
   }
+
+  /* Poof sprite animation */
+  .poof {
+    width: 64px;
+    height: 64px;
+    opacity: 0.6;
+    background-image: url('/assets/poof.png');
+    background-position: 0 0;
+    background-repeat: repeat-x;
+    background-size: 64px 320px; /* Scale sprite sheet to 50% (128px->64px width, 640px->320px height) */
+    animation: poof ease-out 300ms, fade 600ms ease-out 200ms forwards;
+    position: absolute;
+    pointer-events: none;
+    z-index: 1000;
+    top: 0;
+    left: 0;
+  }
+
+  @keyframes poof {
+    0% { background-position: 0 0; }
+    1% { background-position: 0 0; }
+    2% { background-position: 0 0; }
+    3% { background-position: 0 0; }
+    4% { background-position: 0 0; }
+    5% { background-position: 0 0; }
+    6% { background-position: 0 0; }
+    7% { background-position: 0 0; }
+    8% { background-position: 0 0; }
+    9% { background-position: 0 0; }
+    10% { background-position: 0 0; }
+    11% { background-position: 0 0; }
+    12% { background-position: 0 0; }
+    13% { background-position: 0 0; }
+    14% { background-position: 0 0; }
+    15% { background-position: 0 0; }
+    16% { background-position: 0 0; }
+    17% { background-position: 0 0; }
+    18% { background-position: 0 0; }
+    19% { background-position: 0 0; }
+    20% { background-position: 0 -64px; }
+    21% { background-position: 0 -64px; }
+    22% { background-position: 0 -64px; }
+    23% { background-position: 0 -64px; }
+    24% { background-position: 0 -64px; }
+    25% { background-position: 0 -64px; }
+    26% { background-position: 0 -64px; }
+    27% { background-position: 0 -64px; }
+    28% { background-position: 0 -64px; }
+    29% { background-position: 0 -64px; }
+    30% { background-position: 0 -64px; }
+    31% { background-position: 0 -64px; }
+    32% { background-position: 0 -64px; }
+    33% { background-position: 0 -64px; }
+    34% { background-position: 0 -64px; }
+    35% { background-position: 0 -64px; }
+    36% { background-position: 0 -64px; }
+    37% { background-position: 0 -64px; }
+    38% { background-position: 0 -64px; }
+    39% { background-position: 0 -64px; }
+    40% { background-position: 0 -128px; }
+    41% { background-position: 0 -128px; }
+    42% { background-position: 0 -128px; }
+    43% { background-position: 0 -128px; }
+    44% { background-position: 0 -128px; }
+    45% { background-position: 0 -128px; }
+    46% { background-position: 0 -128px; }
+    47% { background-position: 0 -128px; }
+    48% { background-position: 0 -128px; }
+    49% { background-position: 0 -128px; }
+    50% { background-position: 0 -128px; }
+    51% { background-position: 0 -128px; }
+    52% { background-position: 0 -128px; }
+    53% { background-position: 0 -128px; }
+    54% { background-position: 0 -128px; }
+    55% { background-position: 0 -128px; }
+    56% { background-position: 0 -128px; }
+    57% { background-position: 0 -128px; }
+    58% { background-position: 0 -128px; }
+    59% { background-position: 0 -128px; }
+    60% { background-position: 0 -192px; }
+    61% { background-position: 0 -192px; }
+    62% { background-position: 0 -192px; }
+    63% { background-position: 0 -192px; }
+    64% { background-position: 0 -192px; }
+    65% { background-position: 0 -192px; }
+    66% { background-position: 0 -192px; }
+    67% { background-position: 0 -192px; }
+    68% { background-position: 0 -192px; }
+    69% { background-position: 0 -192px; }
+    70% { background-position: 0 -192px; }
+    71% { background-position: 0 -192px; }
+    72% { background-position: 0 -192px; }
+    73% { background-position: 0 -192px; }
+    74% { background-position: 0 -192px; }
+    75% { background-position: 0 -192px; }
+    76% { background-position: 0 -192px; }
+    77% { background-position: 0 -192px; }
+    78% { background-position: 0 -192px; }
+    79% { background-position: 0 -192px; }
+    80% { background-position: 0 -256px; }
+    81% { background-position: 0 -256px; }
+    82% { background-position: 0 -256px; }
+    83% { background-position: 0 -256px; }
+    84% { background-position: 0 -256px; }
+    85% { background-position: 0 -256px; }
+    86% { background-position: 0 -256px; }
+    87% { background-position: 0 -256px; }
+    88% { background-position: 0 -256px; }
+    89% { background-position: 0 -256px; }
+    90% { background-position: 0 -256px; }
+    91% { background-position: 0 -256px; }
+    92% { background-position: 0 -256px; }
+    93% { background-position: 0 -256px; }
+    94% { background-position: 0 -256px; }
+    95% { background-position: 0 -256px; }
+    96% { background-position: 0 -256px; }
+    97% { background-position: 0 -256px; }
+    98% { background-position: 0 -256px; }
+    99% { background-position: 0 -256px; }
+    100% { background-position: 0 -256px; }  
+  }
+
+  @keyframes fade {
+    from { opacity: 0.6; }
+    to { opacity: 0; }
+  }
 }

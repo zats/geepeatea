@@ -75,12 +75,68 @@ const Message = React.forwardRef<{ clearAnnotations: () => void; editAnnotation:
   };
 
   const handleDeleteMessage = () => {
-    deleteChatMessage(messageIndex);
+    const messageElement = messageDomRef.current;
+    if (messageElement) {
+      const rect = messageElement.getBoundingClientRect();
+      const centerX = rect.left + rect.width / 2 + window.scrollX;
+      const centerY = rect.top + rect.height / 2 + window.scrollY;
+      
+      // Create poof animation element
+      const poofElement = document.createElement('div');
+      poofElement.className = 'poof';
+      poofElement.style.position = 'absolute';
+      poofElement.style.left = `${centerX - 32}px`; // Center the 64px element
+      poofElement.style.top = `${centerY - 32}px`;
+      document.body.appendChild(poofElement);
+      
+      // Remove poof element after animation completes
+      setTimeout(() => {
+        if (poofElement.parentNode) {
+          poofElement.parentNode.removeChild(poofElement);
+        }
+      }, 800); // 300ms poof + 200ms delay + 600ms fade - some buffer
+      
+      // Delete message after a short delay to let animation start
+      setTimeout(() => {
+        deleteChatMessage(messageIndex);
+      }, 50);
+    } else {
+      // Fallback if no ref available
+      deleteChatMessage(messageIndex);
+    }
     setContextMenu(null);
   };
 
   const handleDeleteAfter = () => {
-    deleteChatMessageAfter(messageIndex);
+    const messageElement = messageDomRef.current;
+    if (messageElement) {
+      const rect = messageElement.getBoundingClientRect();
+      const centerX = rect.left + rect.width / 2 + window.scrollX;
+      const centerY = rect.top + rect.height / 2 + window.scrollY;
+      
+      // Create poof animation element
+      const poofElement = document.createElement('div');
+      poofElement.className = 'poof';
+      poofElement.style.position = 'absolute';
+      poofElement.style.left = `${centerX - 32}px`; // Center the 64px element
+      poofElement.style.top = `${centerY - 32}px`;
+      document.body.appendChild(poofElement);
+      
+      // Remove poof element after animation completes
+      setTimeout(() => {
+        if (poofElement.parentNode) {
+          poofElement.parentNode.removeChild(poofElement);
+        }
+      }, 800); // 300ms poof + 200ms delay + 600ms fade - some buffer
+      
+      // Delete messages after a short delay to let animation start
+      setTimeout(() => {
+        deleteChatMessageAfter(messageIndex);
+      }, 50);
+    } else {
+      // Fallback if no ref available
+      deleteChatMessageAfter(messageIndex);
+    }
     setContextMenu(null);
   };
   
@@ -515,6 +571,7 @@ const Message = React.forwardRef<{ clearAnnotations: () => void; editAnnotation:
         <div className="flex justify-end">
           <div>
             <div 
+              ref={messageDomRef}
               className={`ml-4 md:ml-24 ${isEditing ? '' : 'rounded-[16px] px-4 py-2 bg-[#ededed]'} text-stone-900 font-light cursor-pointer`}
               onContextMenu={handleContextMenu}
             >

@@ -14,7 +14,7 @@ const geistMono = localFont({
 });
 
 export const metadata: Metadata = {
-  title: "Responses starter app",
+  title: "Pllmayground",
   description: "Starter app for the OpenAI Responses API",
   icons: {
     icon: "/openai_logo.svg",
