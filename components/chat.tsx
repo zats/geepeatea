@@ -28,7 +28,7 @@ const Chat: React.FC<ChatProps> = ({
   onApprovalResponse,
 }) => {
   const itemsEndRef = useRef<HTMLDivElement>(null);
-  const messageRefs = useRef<Record<number, { clearAnnotations: () => void }>>({});
+  const messageRefs = useRef<Record<number, { clearAnnotations: () => void; editAnnotation: (annotationId: string) => void }>>({});
   const [inputMessageText, setInputMessageText] = useState<string>("");
   // This state is used to provide better user experience for non-English IMEs such as Japanese
   const [isComposing, setIsComposing] = useState(false);
@@ -197,6 +197,92 @@ Respond with full message. Do not mention annotations themselves or the fact use
                   ? 'bg-yellow-50 border-yellow-200' 
                   : 'bg-white'
               }`}>
+                {/* Annotation chips */}
+                {isInAnnotationMode && Object.values(messageAnnotations).flat().length > 0 && (
+                  <div className="px-4 pb-2">
+                    <div className="flex gap-2 overflow-x-auto scrollbar-hide">
+                      {Object.values(messageAnnotations).flat().map((annotation, index) => (
+                        <div
+                          key={annotation.id}
+                          className="flex items-center gap-1 bg-yellow-100 border border-yellow-300 rounded-full px-3 py-1 text-sm text-yellow-800 whitespace-nowrap flex-shrink-0 max-w-[200px] cursor-pointer hover:bg-yellow-200 transition-colors"
+                          onClick={() => {
+                            // Find which message contains this annotation
+                            let targetMessageIndex: number | null = null;
+                            Object.entries(messageAnnotations).forEach(([messageIndex, annotations]) => {
+                              if (annotations.some(ann => ann.id === annotation.id)) {
+                                targetMessageIndex = parseInt(messageIndex);
+                              }
+                            });
+                            
+                            if (targetMessageIndex !== null) {
+                              // Find the annotation in the DOM and scroll to it
+                              const annotationElement = document.querySelector(`[data-annotation-id="${annotation.id}"]`);
+                              if (annotationElement) {
+                                annotationElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                              }
+                              
+                              // Open the sticky annotation for editing
+                              const messageRef = messageRefs.current[targetMessageIndex];
+                              if (messageRef && messageRef.editAnnotation) {
+                                messageRef.editAnnotation(annotation.id);
+                              }
+                            }
+                          }}
+                        >
+                          <span className="truncate">{annotation.comment}</span>
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              // Remove this specific annotation
+                              setMessageAnnotations(prev => {
+                                const newState = { ...prev };
+                                Object.keys(newState).forEach(messageIndex => {
+                                  newState[parseInt(messageIndex)] = newState[parseInt(messageIndex)].filter(
+                                    ann => ann.id !== annotation.id
+                                  );
+                                  if (newState[parseInt(messageIndex)].length === 0) {
+                                    delete newState[parseInt(messageIndex)];
+                                  }
+                                });
+                                
+                                // Check if there are any annotations left
+                                const hasAnyAnnotations = Object.values(newState).some(msgAnnotations => msgAnnotations.length > 0);
+                                if (!hasAnyAnnotations && isInAnnotationMode) {
+                                  setIsInAnnotationMode(false);
+                                }
+                                
+                                return newState;
+                              });
+                              
+                              // Also remove from the message component
+                              Object.values(messageRefs.current).forEach(messageRef => {
+                                if (messageRef && messageRef.clearAnnotations) {
+                                  messageRef.clearAnnotations();
+                                }
+                              });
+                            }}
+                            className="ml-1 text-yellow-600 hover:text-yellow-800 hover:bg-yellow-300 rounded-full p-0.5 transition-colors"
+                          >
+                            <svg
+                              xmlns="http://www.w3.org/2000/svg"
+                              width="12"
+                              height="12"
+                              viewBox="0 0 24 24"
+                              fill="none"
+                              stroke="currentColor"
+                              strokeWidth="2"
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                            >
+                              <path d="M18 6L6 18M6 6l12 12"/>
+                            </svg>
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+                
                 <div className="flex items-end gap-1.5 md:gap-2 pl-4">
                   <div className="flex min-w-0 flex-1 flex-col">
                     <textarea

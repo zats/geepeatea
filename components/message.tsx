@@ -18,7 +18,7 @@ interface TextAnnotation {
   endIndex: number;
 }
 
-const Message = React.forwardRef<{ clearAnnotations: () => void }, MessageProps>(({ message, messageIndex, onAnnotationsChange }, ref) => {
+const Message = React.forwardRef<{ clearAnnotations: () => void; editAnnotation: (annotationId: string) => void }, MessageProps>(({ message, messageIndex, onAnnotationsChange }, ref) => {
   const [contextMenu, setContextMenu] = useState<{ x: number; y: number } | null>(null);
   const [isEditing, setIsEditing] = useState(false);
   const [editText, setEditText] = useState("");
@@ -310,7 +310,16 @@ const Message = React.forwardRef<{ clearAnnotations: () => void }, MessageProps>
       result.push(
         <span
           key={annotation.id}
-          className="bg-yellow-200 relative cursor-pointer inline group"
+          data-annotation-id={annotation.id}
+          className="relative cursor-pointer inline group"
+          style={{
+            background: '#fef08a',
+            boxDecorationBreak: 'clone',
+            WebkitBoxDecorationBreak: 'clone',
+            padding: '2px 4px',
+            borderRadius: '4px',
+            margin: '0 1px'
+          }}
           title={annotation.comment || "Click to edit annotation"}
           onClick={(e) => {
             e.stopPropagation();
@@ -327,9 +336,21 @@ const Message = React.forwardRef<{ clearAnnotations: () => void }, MessageProps>
                 e.stopPropagation();
                 handleDeleteAnnotation(annotation.id);
               }}
-              className="group-hover:inline-flex hidden ml-1 w-3 h-3 bg-gray-500 hover:bg-gray-600 rounded-full items-center justify-center text-white"
+              className="group-hover:inline-flex hidden ml-1 text-yellow-600 hover:text-yellow-800 hover:bg-yellow-300 rounded-full p-0.5 transition-colors"
             >
-              <X size={8} />
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="12"
+                height="12"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
+                <path d="M18 6L6 18M6 6l12 12"/>
+              </svg>
             </button>
           )}
           {/* Show inline input if this annotation is being actively edited */}
@@ -367,7 +388,14 @@ const Message = React.forwardRef<{ clearAnnotations: () => void }, MessageProps>
 
   // Clear annotations when requested (exposed method)
   React.useImperativeHandle(ref, () => ({
-    clearAnnotations: () => setAnnotations([])
+    clearAnnotations: () => setAnnotations([]),
+    editAnnotation: (annotationId: string) => {
+      const annotation = annotations.find(ann => ann.id === annotationId);
+      if (annotation) {
+        setActiveAnnotation(annotationId);
+        setAnnotationComment(annotation.comment);
+      }
+    }
   }));
 
   // Notify parent when annotations change - only call when valid annotations actually change
