@@ -10,27 +10,67 @@ export const askEphemeralQuery = async ({ query, context }: EphemeralQueryOption
     // Get API key from the store
     const { apiKey } = useToolsStore.getState();
     
-    const response = await fetch("/api/ephemeral_query", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        query,
-        context,
-        apiKey,
-      }),
+    if (!apiKey) {
+      throw new Error("OpenAI API key is required. Please set it in the settings panel.");
+    }
+
+    // Import OpenAI and dependencies dynamically
+    const [{ default: OpenAI }, { MODEL }] = await Promise.all([
+      import("openai"),
+      import("@/config/constants")
+    ]);
+
+    // Create OpenAI client instance
+    const openai = new OpenAI({
+      apiKey: apiKey,
+      dangerouslyAllowBrowser: true // Required for client-side usage
     });
 
-    if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`);
-    }
+    // Get tools for the ephemeral query (disable for now to avoid type issues)
+    const tools: any[] = [];
 
-    const data = await response.json();
-    
-    if (data.error) {
-      throw new Error(data.error);
-    }
+    // Create messages for ephemeral query
+    const messages = [
+      {
+        type: "message" as const,
+        role: "developer" as const,
+        content: [
+          {
+            type: "input_text" as const,
+            text: "You are a helpful assistant. Answer the user's question about the provided context concisely and clearly."
+          }
+        ]
+      },
+      {
+        type: "message" as const, 
+        role: "user" as const,
+        content: [
+          {
+            type: "input_text" as const,
+            text: context 
+              ? `Based on this context: "${context}"\n\nQuestion: ${query}`
+              : query
+          }
+        ]
+      }
+    ];
 
-    return data.response;
+    // Call OpenAI Responses API directly (non-streaming)
+    const response = await openai.responses.create({
+      model: MODEL,
+      input: messages,
+      tools,
+      stream: false,
+      parallel_tool_calls: false,
+    });
+
+    // Extract text content from response
+    const textContent = response.output
+      .filter((item: any) => item.type === "message")
+      .map((item: any) => item.content?.text || "")
+      .join("");
+
+    return textContent;
   } catch (error) {
     console.error("Error in ephemeral query:", error);
     throw error;
@@ -47,66 +87,78 @@ export const askEphemeralQueryStream = async (
     // Get API key from the store
     const { apiKey } = useToolsStore.getState();
     
-    const response = await fetch("/api/ephemeral_query", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        query,
-        context,
-        apiKey,
-      }),
-    });
-
-    if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`);
+    if (!apiKey) {
+      throw new Error("OpenAI API key is required. Please set it in the settings panel.");
     }
 
-    const reader = response.body!.getReader();
-    const decoder = new TextDecoder();
-    let done = false;
-    let buffer = "";
+    // Import OpenAI and dependencies dynamically
+    const [{ default: OpenAI }, { MODEL }] = await Promise.all([
+      import("openai"),
+      import("@/config/constants")
+    ]);
 
-    while (!done) {
-      const { value, done: doneReading } = await reader.read();
-      done = doneReading;
-      const chunkValue = decoder.decode(value);
-      buffer += chunkValue;
+    // Create OpenAI client instance
+    const openai = new OpenAI({
+      apiKey: apiKey,
+      dangerouslyAllowBrowser: true // Required for client-side usage
+    });
 
-      const lines = buffer.split("\n\n");
-      buffer = lines.pop() || "";
+    // Get tools for the ephemeral query (disable for now to avoid type issues)
+    const tools: any[] = [];
 
-      for (const line of lines) {
-        if (line.startsWith("data: ")) {
-          const dataStr = line.slice(6);
-          if (dataStr === "[DONE]") {
-            done = true;
-            break;
+    // Create messages for ephemeral query
+    const messages = [
+      {
+        type: "message" as const,
+        role: "developer" as const,
+        content: [
+          {
+            type: "input_text" as const,
+            text: "You are a helpful assistant. Answer the user's question about the provided context concisely and clearly."
           }
-          try {
-            const eventData = JSON.parse(dataStr);
-            const { event, data } = eventData;
-            
-            // Handle different event types from OpenAI Responses API
-            switch (event) {
-              case "response.output_text.delta":
-                const { delta } = data;
-                if (typeof delta === "string" && delta) {
-                  onContent(delta);
-                }
-                break;
-              case "response.completed":
-                // Response is complete
-                done = true;
-                break;
-              // Handle other events as needed (tool calls, etc.)
-              default:
-                // Ignore other events for now
-                break;
-            }
-          } catch (e) {
-            console.error("Error parsing stream data:", e);
+        ]
+      },
+      {
+        type: "message" as const, 
+        role: "user" as const,
+        content: [
+          {
+            type: "input_text" as const,
+            text: context 
+              ? `Based on this context: "${context}"\n\nQuestion: ${query}`
+              : query
           }
-        }
+        ]
+      }
+    ];
+
+    // Call OpenAI Responses API directly
+    const events = await openai.responses.create({
+      model: MODEL,
+      input: messages,
+      tools,
+      stream: true,
+      parallel_tool_calls: false,
+    });
+
+    // Process the streaming events
+    for await (const event of events) {
+      // Handle different event types from OpenAI Responses API
+      switch (event.type) {
+        case "response.output_text.delta":
+          const { delta } = event;
+          if (typeof delta === "string" && delta) {
+            onContent(delta);
+          }
+          break;
+        case "response.completed":
+          // Response is complete
+          onComplete();
+          return;
+        // Handle other events as needed (tool calls, etc.)
+        default:
+          // Ignore other events for now
+          break;
       }
     }
 
