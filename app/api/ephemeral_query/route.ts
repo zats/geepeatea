@@ -32,18 +32,31 @@ export async function POST(request: Request) {
     // Create messages in the same format as main conversation
     const messages = [
       {
-        role: "developer",
-        content: "You are a helpful assistant. Answer the user's question about the provided context concisely and clearly."
+        type: "message",
+        role: "developer" as const,
+        content: [
+          {
+            type: "input_text" as const,
+            text: "You are a helpful assistant. Answer the user's question about the provided context concisely and clearly."
+          }
+        ]
       },
       {
-        role: "user",
-        content: context 
-          ? `Based on this context: "${context}"\n\nQuestion: ${query}`
-          : query
+        type: "message", 
+        role: "user" as const,
+        content: [
+          {
+            type: "input_text" as const,
+            text: context 
+              ? `Based on this context: "${context}"\n\nQuestion: ${query}`
+              : query
+          }
+        ]
       }
     ];
 
     // Use OpenAI Responses API - same as main conversation flow
+    // @ts-expect-error - Temporary ignore type mismatch
     const events = await openai.responses.create({
       model: MODEL,
       input: messages,

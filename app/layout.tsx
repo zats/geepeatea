@@ -16,9 +16,6 @@ const geistMono = localFont({
 export const metadata: Metadata = {
   title: "🤯🫛☕️",
   description: "Starter app for the OpenAI Responses API",
-  icons: {
-    icon: "/openai_logo.svg",
-  },
 };
 
 export default function RootLayout({

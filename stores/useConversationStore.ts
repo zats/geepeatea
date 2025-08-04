@@ -1,5 +1,5 @@
 import { create } from "zustand";
-import { Item } from "@/lib/assistant";
+import { Item, ContentItem } from "@/lib/assistant";
 import { ChatCompletionMessageParam } from "openai/resources/chat/completions";
 import { INITIAL_MESSAGE } from "@/config/constants";
 
@@ -26,15 +26,15 @@ interface ConversationState {
   setCurrentAbortController: (controller: AbortController | null) => void;
   abortCurrentRequest: () => void;
   replaceLastAssistantMessage: (newText: string) => void;
-  createMessageVersion: (messageIndex: number, newContent: Item["content"], source?: "annotation" | "edit", originalContent?: Item["content"]) => void;
+  createMessageVersion: (messageIndex: number, newContent: ContentItem[], source?: "annotation" | "edit", originalContent?: ContentItem[]) => void;
   selectMessageVersion: (messageIndex: number, versionId: string) => void;
-  getCurrentVersionContent: (messageIndex: number) => Item["content"];
+  getCurrentVersionContent: (messageIndex: number) => ContentItem[];
   setMessageToReplaceIndex: (index: number | null) => void;
   clearConversation: () => void;
   rawSet: (state: any) => void;
 }
 
-const useConversationStore = create<ConversationState>((set) => ({
+const useConversationStore = create<ConversationState>((set, get) => ({
   chatMessages: [
     {
       type: "message",
@@ -207,7 +207,7 @@ const useConversationStore = create<ConversationState>((set) => ({
     }),
   setCurrentAbortController: (controller) => set({ currentAbortController: controller }),
   abortCurrentRequest: () => {
-    const state = useConversationStore.getState();
+    const state = get();
     if (state.currentAbortController) {
       state.currentAbortController.abort();
       set({ currentAbortController: null, chatState: 'idle' });
@@ -228,9 +228,9 @@ const useConversationStore = create<ConversationState>((set) => ({
       if (lastAssistantIndex !== -1) {
         const lastAssistantMessage = newChatMessages[lastAssistantIndex];
         
-        
-        // Initialize versions if they don't exist
-        const existingVersions = lastAssistantMessage.versions || [{
+        if (lastAssistantMessage.type === "message") {
+          // Initialize versions if they don't exist
+          const existingVersions = lastAssistantMessage.versions || [{
           id: "original",
           content: [...lastAssistantMessage.content],
           timestamp: Date.now() - 1000, // Slightly in the past
@@ -264,8 +264,9 @@ const useConversationStore = create<ConversationState>((set) => ({
           (item) => item.role === "assistant"
         );
         
-        if (conversationIndex !== -1) {
-          newConversationItems[conversationIndex].content = newText;
+          if (conversationIndex !== -1) {
+            newConversationItems[conversationIndex].content = newText;
+          }
         }
       }
       
@@ -274,7 +275,7 @@ const useConversationStore = create<ConversationState>((set) => ({
         conversationItems: newConversationItems
       };
     }),
-  createMessageVersion: (messageIndex, newContent, source = "annotation", originalContent?: Item["content"]) =>
+  createMessageVersion: (messageIndex, newContent, source = "annotation", originalContent?: ContentItem[]) =>
     set((state) => {
       
       const newChatMessages = [...state.chatMessages];
@@ -377,7 +378,7 @@ const useConversationStore = create<ConversationState>((set) => ({
       return state;
     }),
   getCurrentVersionContent: (messageIndex) => {
-    const state = useConversationStore.getState();
+    const state = get();
     const message = state.chatMessages[messageIndex];
     
     if (message?.type === "message") {
@@ -388,7 +389,7 @@ const useConversationStore = create<ConversationState>((set) => ({
   },
   setMessageToReplaceIndex: (index) => set({ messageToReplaceIndex: index }),
   clearConversation: () => {
-    const state = useConversationStore.getState();
+    const state = get();
     
     // Abort any in-flight requests
     if (state.currentAbortController) {

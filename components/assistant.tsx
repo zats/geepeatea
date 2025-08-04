@@ -48,7 +48,7 @@ export default function Assistant() {
         await processMessages();
         // Remove the annotation request from conversationItems after processing
         const { conversationItems, setConversationItems } = useConversationStore.getState();
-        const filteredItems = conversationItems.filter((_, index) => index !== conversationItems.length - 1);
+        const filteredItems = conversationItems.filter((_: any, index: number) => index !== conversationItems.length - 1);
         setConversationItems(filteredItems);
       } else {
         // Normal message flow

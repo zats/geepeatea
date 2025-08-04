@@ -195,7 +195,7 @@ export const processMessages = async () => {
   let currentAssistantMessageIndex = -1;
   
   // Capture original content before replacement (for version creation)
-  let originalMessageContent: Item["content"] | null = null;
+  let originalMessageContent: ContentItem[] | null = null;
   if (messageToReplaceIndex !== null && chatMessages[messageToReplaceIndex]) {
     const messageToReplace = chatMessages[messageToReplaceIndex];
     if (messageToReplace.type === "message" && messageToReplace.content) {
@@ -225,7 +225,7 @@ export const processMessages = async () => {
           if (messageToReplaceIndex !== null) {
             // We're replacing a message, so update the existing conversationItems assistant message
             const assistantConversationIndex = conversationItems.findLastIndex(
-              (item) => item.role === "assistant"
+              (item: any) => item.role === "assistant"
             );
             if (assistantConversationIndex !== -1) {
               conversationItems[assistantConversationIndex].content = assistantMessageContent;
@@ -337,7 +337,7 @@ export const processMessages = async () => {
               if (messageToReplaceIndex !== null) {
                 // We're replacing a message, so update the existing conversationItems assistant message
                 const assistantConversationIndex = conversationItems.findLastIndex(
-                  (item) => item.role === "assistant"
+                  (item: any) => item.role === "assistant"
                 );
                 if (assistantConversationIndex !== -1) {
                   conversationItems[assistantConversationIndex].content = text;
@@ -433,7 +433,7 @@ export const processMessages = async () => {
       case "response.output_item.done": {
         // After output item is done, adding tool call ID
         const { item } = data || {};
-        const toolCallMessage = chatMessages.find((m) => m.id === item.id);
+        const toolCallMessage = chatMessages.find((m: any) => m.id === item.id);
         if (toolCallMessage && toolCallMessage.type === "tool_call") {
           toolCallMessage.call_id = item.call_id;
           setChatMessages([...chatMessages]);
@@ -488,7 +488,7 @@ export const processMessages = async () => {
         functionArguments += data.delta || "";
         let parsedFunctionArguments = {};
 
-        const toolCallMessage = chatMessages.find((m) => m.id === data.item_id);
+        const toolCallMessage = chatMessages.find((m: any) => m.id === data.item_id);
         if (toolCallMessage && toolCallMessage.type === "tool_call") {
           toolCallMessage.arguments = functionArguments;
           try {
@@ -511,7 +511,7 @@ export const processMessages = async () => {
         functionArguments = finalArgs;
 
         // Mark the tool_call as "completed" and parse the final JSON
-        const toolCallMessage = chatMessages.find((m) => m.id === item_id);
+        const toolCallMessage = chatMessages.find((m: any) => m.id === item_id);
         if (toolCallMessage && toolCallMessage.type === "tool_call") {
           toolCallMessage.arguments = finalArgs;
           toolCallMessage.parsedArguments = parse(finalArgs);
@@ -525,7 +525,7 @@ export const processMessages = async () => {
         // Append delta to MCP arguments
         mcpArguments += data.delta || "";
         let parsedMcpArguments: any = {};
-        const toolCallMessage = chatMessages.find((m) => m.id === data.item_id);
+        const toolCallMessage = chatMessages.find((m: any) => m.id === data.item_id);
         if (toolCallMessage && toolCallMessage.type === "tool_call") {
           toolCallMessage.arguments = mcpArguments;
           try {
@@ -544,7 +544,7 @@ export const processMessages = async () => {
         // Final MCP arguments string received
         const { item_id, arguments: finalArgs } = data;
         mcpArguments = finalArgs;
-        const toolCallMessage = chatMessages.find((m) => m.id === item_id);
+        const toolCallMessage = chatMessages.find((m: any) => m.id === item_id);
         if (toolCallMessage && toolCallMessage.type === "tool_call") {
           toolCallMessage.arguments = finalArgs;
           toolCallMessage.parsedArguments = parse(finalArgs);
@@ -556,7 +556,7 @@ export const processMessages = async () => {
 
       case "response.web_search_call.completed": {
         const { item_id, output } = data;
-        const toolCallMessage = chatMessages.find((m) => m.id === item_id);
+        const toolCallMessage = chatMessages.find((m: any) => m.id === item_id);
         if (toolCallMessage && toolCallMessage.type === "tool_call") {
           toolCallMessage.output = output;
           toolCallMessage.status = "completed";
@@ -567,7 +567,7 @@ export const processMessages = async () => {
 
       case "response.file_search_call.completed": {
         const { item_id, output } = data;
-        const toolCallMessage = chatMessages.find((m) => m.id === item_id);
+        const toolCallMessage = chatMessages.find((m: any) => m.id === item_id);
         if (toolCallMessage && toolCallMessage.type === "tool_call") {
           toolCallMessage.output = output;
           toolCallMessage.status = "completed";
@@ -619,7 +619,7 @@ export const processMessages = async () => {
       case "response.code_interpreter_call.completed": {
         const { item_id } = data;
         const toolCallMessage = chatMessages.find(
-          (m) => m.type === "tool_call" && m.id === item_id
+          (m: any) => m.type === "tool_call" && m.id === item_id
         ) as ToolCallItem | undefined;
         if (toolCallMessage) {
           toolCallMessage.status = "completed";
