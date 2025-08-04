@@ -20,7 +20,7 @@ interface TextAnnotation {
   endIndex: number;
 }
 
-const Message = React.forwardRef<{ clearAnnotations: () => void; editAnnotation: (annotationId: string) => void }, MessageProps>(({ message, messageIndex, onAnnotationsChange }, ref) => {
+const Message = React.forwardRef<{ clearAnnotations: () => void; editAnnotation: (annotationId: string) => void }, MessageProps>(function Message({ message, messageIndex, onAnnotationsChange }, ref) {
   const [contextMenu, setContextMenu] = useState<{ x: number; y: number } | null>(null);
   const [isEditing, setIsEditing] = useState(false);
   const [editText, setEditText] = useState("");
@@ -410,7 +410,7 @@ const Message = React.forwardRef<{ clearAnnotations: () => void; editAnnotation:
     // Sort annotations by start index to process them in order
     const sortedAnnotations = [...annotations].sort((a, b) => a.startIndex - b.startIndex);
     
-    let result: React.ReactNode[] = [];
+    const result: React.ReactNode[] = [];
     let lastIndex = 0;
 
     sortedAnnotations.forEach((annotation, index) => {
