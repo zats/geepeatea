@@ -160,7 +160,7 @@ Respond with full message. Do not mention annotations themselves or the fact use
   return (
     <div className="flex justify-center items-center size-full">
       <div className="flex grow flex-col h-full max-w-[750px] gap-2">
-        <div className="h-[90vh] overflow-y-scroll px-10 flex flex-col">
+        <div className="h-[calc(100vh-8rem)] overflow-y-scroll px-10 flex flex-col">
           <div className="mt-auto space-y-5 pt-4">
 {items
               .filter((item, index) => {
@@ -214,7 +214,7 @@ Respond with full message. Do not mention annotations themselves or the fact use
             <div ref={itemsEndRef} />
           </div>
         </div>
-        <div className="flex-1 p-4 px-10">
+        <div className="flex-shrink-0 p-4 px-10">
           <div className="flex items-center">
             <div className="flex w-full items-center pb-4 md:pb-1">
               <div className={`flex w-full flex-col gap-1.5 rounded-[20px] p-2.5 pl-1.5 transition-colors border border-stone-200 shadow-sm ${
