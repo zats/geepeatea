@@ -5,10 +5,10 @@ import useConversationStore from "@/stores/useConversationStore";
 import { Item, processMessages } from "@/lib/assistant";
 
 export default function Assistant() {
-  const { chatMessages, addConversationItem, addChatMessage, setAssistantLoading, abortCurrentRequest } =
+  const { chatMessages, addConversationItem, addChatMessage, setAssistantLoading, abortCurrentRequest, setMessageToReplaceIndex } =
     useConversationStore();
 
-  const handleSendMessage = async (message: string) => {
+  const handleSendMessage = async (message: string, annotatedMessageIndex?: number) => {
     if (!message.trim()) return;
 
     // Abort any current request before starting a new one
@@ -26,6 +26,12 @@ export default function Assistant() {
 
     try {
       setAssistantLoading(true);
+      
+      // If annotations exist, set the message to replace
+      if (annotatedMessageIndex !== undefined) {
+        setMessageToReplaceIndex(annotatedMessageIndex);
+      }
+      
       addConversationItem(userMessage);
       addChatMessage(userItem);
       await processMessages();

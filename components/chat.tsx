@@ -20,7 +20,7 @@ interface TextAnnotation {
 
 interface ChatProps {
   items: Item[];
-  onSendMessage: (message: string) => void;
+  onSendMessage: (message: string, annotatedMessageIndex?: number) => void;
   onApprovalResponse: (approve: boolean, id: string) => void;
 }
 
@@ -58,10 +58,17 @@ const Chat: React.FC<ChatProps> = ({
     if (inputText.trim()) {
       formattedMessage += "\n\n";
     }
-    formattedMessage += "User made following annotations on the previous message:\n\n";
+    formattedMessage += `User made following annotations on the previous message.
+Retain as much of the original message as possible, replace annotated parts where makes sense.
+Annotations list:
+`;
     allAnnotations.forEach((annotation, index) => {
       formattedMessage += `* "${annotation.text}" → ${annotation.comment}\n\n`;
     });
+
+    formattedMessage += `
+
+Respond with full message. Do not mention annotations themselves or the fact user created them requesting changes.`;
 
     console.log("Formatted message with annotations:", formattedMessage);
 
@@ -70,7 +77,13 @@ const Chat: React.FC<ChatProps> = ({
 
   const handleSendMessage = useCallback(() => {
     const messageToSend = formatAnnotationsForMessage(inputMessageText);
-    onSendMessage(messageToSend);
+    
+    // Find which message has annotations (if any)
+    const annotatedMessageIndex = Object.keys(messageAnnotations).length > 0 
+      ? Math.max(...Object.keys(messageAnnotations).map(Number))
+      : undefined;
+    
+    onSendMessage(messageToSend, annotatedMessageIndex);
     setinputMessageText("");
     
     // Clear all annotations after sending

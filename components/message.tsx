@@ -2,7 +2,7 @@ import { MessageItem } from "@/lib/assistant";
 import React, { useState, useRef, useEffect } from "react";
 import ReactMarkdown from "react-markdown";
 import useConversationStore from "@/stores/useConversationStore";
-import { X, Edit3, Trash2, MessageSquare } from "lucide-react";
+import { X, Edit3, Trash2, MessageSquare, ChevronLeft, ChevronRight, History } from "lucide-react";
 
 interface MessageProps {
   message: MessageItem;
@@ -30,7 +30,24 @@ const Message = React.forwardRef<{ clearAnnotations: () => void }, MessageProps>
   const [annotationComment, setAnnotationComment] = useState("");
   const messageRef = useRef<HTMLDivElement>(null);
   const messageDomRef = useRef<HTMLDivElement>(null);
-  const { deleteChatMessage, deleteChatMessageAfter, editChatMessage } = useConversationStore();
+  const { deleteChatMessage, deleteChatMessageAfter, editChatMessage, selectMessageVersion, createMessageVersion } = useConversationStore();
+
+  // Version navigation helpers
+  const hasVersions = message.versions && message.versions.length > 1;
+  const currentVersionIndex = hasVersions 
+    ? message.versions!.findIndex(v => v.id === message.currentVersionId) 
+    : -1;
+  
+  // If no currentVersionId is set or invalid, default to the last version
+  // This ensures we always have a valid index (0 to length-1) when versions exist
+  const effectiveVersionIndex = hasVersions 
+    ? (currentVersionIndex >= 0 ? currentVersionIndex : message.versions!.length - 1)
+    : 0;
+    
+  const canGoToPrevious = hasVersions && effectiveVersionIndex > 0;
+  const canGoToNext = hasVersions && effectiveVersionIndex < message.versions!.length - 1;
+
+
 
   const handleContextMenu = (e: React.MouseEvent) => {
     e.preventDefault();
@@ -76,6 +93,20 @@ const Message = React.forwardRef<{ clearAnnotations: () => void }, MessageProps>
     } else if (e.key === "Escape") {
       e.preventDefault();
       handleCancelEdit(true);
+    }
+  };
+
+  const handlePreviousVersion = () => {
+    if (canGoToPrevious && message.versions && effectiveVersionIndex > 0) {
+      const prevVersionId = message.versions[effectiveVersionIndex - 1].id;
+      selectMessageVersion(messageIndex, prevVersionId);
+    }
+  };
+
+  const handleNextVersion = () => {
+    if (canGoToNext && message.versions && effectiveVersionIndex < message.versions.length - 1) {
+      const nextVersionId = message.versions[effectiveVersionIndex + 1].id;
+      selectMessageVersion(messageIndex, nextVersionId);
     }
   };
 
@@ -478,6 +509,34 @@ const Message = React.forwardRef<{ clearAnnotations: () => void }, MessageProps>
               )}
             </div>
           </div>
+          
+          {/* Version Navigation - only show for assistant messages with multiple versions */}
+          {hasVersions && message.role === "assistant" && (
+            <div className="flex items-center justify-start mt-2 mr-4 md:mr-24">
+              <div className="flex items-center gap-2 text-xs text-gray-500">
+                <History className="w-3 h-3" />
+                <span>Version {effectiveVersionIndex + 1} of {message.versions!.length}</span>
+                <div className="flex items-center gap-1 ml-2">
+                  <button
+                    onClick={handlePreviousVersion}
+                    disabled={!canGoToPrevious}
+                    className={`p-1 rounded hover:bg-gray-100 ${canGoToPrevious ? 'text-gray-600' : 'text-gray-300 cursor-not-allowed'}`}
+                    title="Previous version"
+                  >
+                    <ChevronLeft className="w-3 h-3" />
+                  </button>
+                  <button
+                    onClick={handleNextVersion}
+                    disabled={!canGoToNext}
+                    className={`p-1 rounded hover:bg-gray-100 ${canGoToNext ? 'text-gray-600' : 'text-gray-300 cursor-not-allowed'}`}
+                    title="Next version"
+                  >
+                    <ChevronRight className="w-3 h-3" />
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
       )}
       

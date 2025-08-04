@@ -18,12 +18,21 @@ export interface ContentItem {
   text?: string;
 }
 
+export interface MessageVersion {
+  id: string;
+  content: ContentItem[];
+  timestamp: number;
+  source?: "original" | "annotation" | "edit"; // Track how this version was created
+}
+
 // Message items for storing conversation history matching API shape
 export interface MessageItem {
   type: "message";
   role: "user" | "assistant" | "system";
   id?: string;
-  content: ContentItem[];
+  content: ContentItem[]; // Current/displayed content
+  versions?: MessageVersion[]; // All versions of this message
+  currentVersionId?: string; // Which version is currently selected
 }
 
 // Custom items to display in chat
@@ -150,6 +159,9 @@ export const processMessages = async () => {
     setAssistantLoading,
     currentAbortController,
     setCurrentAbortController,
+    messageToReplaceIndex,
+    setMessageToReplaceIndex,
+    createMessageVersion,
   } = useConversationStore.getState();
 
   // Create new AbortController for this request
@@ -165,11 +177,21 @@ export const processMessages = async () => {
     },
     ...conversationItems,
   ];
+  
 
   let assistantMessageContent = "";
   let functionArguments = "";
   // For streaming MCP tool call arguments
   let mcpArguments = "";
+  
+  // Capture original content before replacement (for version creation)
+  let originalMessageContent: Item["content"] | null = null;
+  if (messageToReplaceIndex !== null && chatMessages[messageToReplaceIndex]) {
+    const messageToReplace = chatMessages[messageToReplaceIndex];
+    if (messageToReplace.type === "message" && messageToReplace.content) {
+      originalMessageContent = [...messageToReplace.content];
+    }
+  }
 
   try {
     await handleTurn(allConversationItems, tools, async ({ event, data }) => {
@@ -184,34 +206,85 @@ export const processMessages = async () => {
         }
         assistantMessageContent += partial;
 
-        // If the last message isn't an assistant message, create a new one
-        const lastItem = chatMessages[chatMessages.length - 1];
-        if (
-          !lastItem ||
-          lastItem.type !== "message" ||
-          lastItem.role !== "assistant" ||
-          (lastItem.id && lastItem.id !== item_id)
-        ) {
-          chatMessages.push({
-            type: "message",
-            role: "assistant",
-            id: item_id,
-            content: [
-              {
-                type: "output_text",
-                text: assistantMessageContent,
-              },
-            ],
-          } as MessageItem);
+        // UPDATE CONVERSATIONITEMS WITH EVERY DELTA AND PERSIST TO STORE
+        if (assistantMessageContent.trim().length > 0) {
+          let updated = false;
+          
+          if (messageToReplaceIndex !== null) {
+            // We're replacing a message, so update the existing conversationItems assistant message
+            const assistantConversationIndex = conversationItems.findLastIndex(
+              (item) => item.role === "assistant"
+            );
+            if (assistantConversationIndex !== -1) {
+              conversationItems[assistantConversationIndex].content = assistantMessageContent;
+              updated = true;
+            }
+          } else {
+            // Normal flow: find existing assistant message or create new one
+            const existingAssistantIndex = conversationItems.findLastIndex(
+              (item) => item.role === "assistant"
+            );
+            
+            if (existingAssistantIndex !== -1) {
+              // Update existing assistant message
+              conversationItems[existingAssistantIndex].content = assistantMessageContent;
+              updated = true;
+            } else {
+              // Create new assistant message
+              conversationItems.push({
+                role: "assistant",
+                content: assistantMessageContent,
+              });
+              updated = true;
+            }
+          }
+          
+          // PERSIST THE CHANGES TO THE STORE
+          if (updated) {
+            setConversationItems([...conversationItems]);
+          }
+        }
+
+        // Check if we should replace an existing message (for annotations)
+        if (messageToReplaceIndex !== null && chatMessages[messageToReplaceIndex]) {
+          const messageToReplace = chatMessages[messageToReplaceIndex];
+          if (messageToReplace.type === "message") {
+            // Just update the content during streaming, don't create versions yet
+            messageToReplace.content[0] = {
+              type: "output_text",
+              text: assistantMessageContent,
+            };
+          }
         } else {
-          const contentItem = lastItem.content[0];
-          if (contentItem && contentItem.type === "output_text") {
-            contentItem.text = assistantMessageContent;
-            if (annotation) {
-              contentItem.annotations = [
-                ...(contentItem.annotations ?? []),
-                normalizeAnnotation(annotation),
-              ];
+          // Normal flow: If the last message isn't an assistant message, create a new one
+          const lastItem = chatMessages[chatMessages.length - 1];
+          if (
+            !lastItem ||
+            lastItem.type !== "message" ||
+            lastItem.role !== "assistant" ||
+            (lastItem.id && lastItem.id !== item_id)
+          ) {
+            chatMessages.push({
+              type: "message",
+              role: "assistant",
+              id: item_id,
+              content: [
+                {
+                  type: "output_text",
+                  text: assistantMessageContent,
+                },
+              ],
+            } as MessageItem);
+          } else {
+            const contentItem = lastItem.content[0];
+            if (contentItem && contentItem.type === "output_text") {
+              contentItem.text = assistantMessageContent;
+              if (annotation) {
+                contentItem.annotations = [
+                  ...(contentItem.annotations ?? []),
+                  normalizeAnnotation(annotation),
+                ];
+              }
             }
           }
         }
@@ -245,13 +318,39 @@ export const processMessages = async () => {
                 },
               ],
             });
-            // Don't push the raw message item to conversationItems
-            // Instead, push a simple assistant message without the id
-            // This avoids the reasoning item dependency issue
-            conversationItems.push({
-              role: "assistant",
-              content: text,
-            });
+            // Only add to conversationItems when we have actual content
+            if (text.trim().length > 0) {
+              if (messageToReplaceIndex !== null) {
+                // We're replacing a message, so update the existing conversationItems assistant message
+                const assistantConversationIndex = conversationItems.findLastIndex(
+                  (item) => item.role === "assistant"
+                );
+                if (assistantConversationIndex !== -1) {
+                  conversationItems[assistantConversationIndex].content = text;
+                  console.log(`🔄 STREAMING UPDATE [${text.length} chars]: Updated existing assistant message during replacement`);
+                } else {
+                  console.log(`⚠️ [Assistant] Could not find existing assistant message in conversationItems to update`);
+                }
+              } else {
+                // Normal flow: find existing assistant message or create new one
+                const existingAssistantIndex = conversationItems.findLastIndex(
+                  (item) => item.role === "assistant"
+                );
+                
+                if (existingAssistantIndex !== -1) {
+                  // Update existing assistant message
+                  conversationItems[existingAssistantIndex].content = text;
+                  console.log(`🔄 STREAMING UPDATE [${text.length} chars]: Updated existing assistant message`);
+                } else {
+                  // Create new assistant message
+                  conversationItems.push({
+                    role: "assistant",
+                    content: text,
+                  });
+                  console.log(`✅ STREAMING CREATE [${text.length} chars]: Created new assistant message`);
+                }
+              }
+            }
             setChatMessages([...chatMessages]);
             setConversationItems([...conversationItems]);
             break;
@@ -351,12 +450,13 @@ export const processMessages = async () => {
           // Record tool output
           toolCallMessage.output = JSON.stringify(toolResult);
           setChatMessages([...chatMessages]);
-          conversationItems.push({
+          const toolOutputItem = {
             type: "function_call_output",
             call_id: toolCallMessage.call_id,
             status: "completed",
             output: JSON.stringify(toolResult),
-          });
+          };
+          conversationItems.push(toolOutputItem);
           setConversationItems([...conversationItems]);
 
           // Create another turn after tool output has been added
@@ -522,6 +622,23 @@ export const processMessages = async () => {
       case "response.completed": {
         console.log("response completed", data);
         const { response } = data;
+
+        // If we were replacing a message (for annotations), create the version now
+        if (messageToReplaceIndex !== null && chatMessages[messageToReplaceIndex]) {
+          const messageToReplace = chatMessages[messageToReplaceIndex];
+          if (messageToReplace.type === "message" && messageToReplace.content[0]) {
+            // Create a new version with the final content
+            const finalContent = [{
+              type: "output_text" as const,
+              text: messageToReplace.content[0].text || "",
+            }];
+            
+            createMessageVersion(messageToReplaceIndex, finalContent, "annotation", originalMessageContent || undefined);
+            // Clear the replace index
+            setMessageToReplaceIndex(null);
+          }
+        }
+        // Don't create versions during normal streaming - only for annotations
 
         // Handle MCP tools list
         const mcpListToolsMessage = response.output.find(
