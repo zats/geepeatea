@@ -228,7 +228,7 @@ const Message = React.forwardRef<{ clearAnnotations: () => void; editAnnotation:
     const rect = range.getBoundingClientRect();
     setAnnotationMenu({
       x: rect.left + rect.width / 2,
-      y: rect.bottom + 5
+      y: rect.top - 5
     });
   };
 
@@ -468,7 +468,7 @@ const Message = React.forwardRef<{ clearAnnotations: () => void; editAnnotation:
           )}
           {/* Show inline input if this annotation is being actively edited */}
           {activeAnnotation === annotation.id ? (
-            <div data-annotation-input className="absolute top-full left-0 mt-1 bg-yellow-100 border border-yellow-300 rounded p-2 text-sm min-w-[200px] max-w-64 z-20 shadow-lg">
+            <div data-annotation-input className="absolute bottom-full left-0 mb-1 bg-yellow-100 border border-yellow-300 rounded p-2 text-sm min-w-[100px] max-w-64 z-20 shadow-lg">
               <textarea
                 value={annotationComment}
                 onChange={(e) => setAnnotationComment(e.target.value)}
@@ -481,7 +481,7 @@ const Message = React.forwardRef<{ clearAnnotations: () => void; editAnnotation:
             </div>
           ) : annotation.comment ? (
             /* Show completed annotation tooltip on hover */
-            <div className="group-hover:block hidden absolute top-full left-0 mt-1 bg-yellow-100 border border-yellow-300 rounded p-2 text-xs max-w-48 z-10 shadow-lg">
+            <div className="group-hover:block hidden absolute bottom-full left-0 mb-1 bg-yellow-100 border border-yellow-300 rounded p-2 text-xs min-w-[100px] max-w-48 z-10 shadow-lg">
               {annotation.comment}
             </div>
           ) : null}
