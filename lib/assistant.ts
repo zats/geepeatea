@@ -89,6 +89,9 @@ export const handleTurn = async (
   abortController?: AbortController
 ) => {
   try {
+    // Get API key from the store
+    const { apiKey } = await import("@/stores/useToolsStore").then(m => m.default.getState());
+    
     // Get response from the API (defined in app/api/turn_response/route.ts)
     const response = await fetch("/api/turn_response", {
       method: "POST",
@@ -96,6 +99,7 @@ export const handleTurn = async (
       body: JSON.stringify({
         messages: messages,
         tools: tools,
+        apiKey: apiKey,
       }),
       signal: abortController?.signal,
     });

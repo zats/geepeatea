@@ -8,20 +8,23 @@ import { TooltipProvider } from "./ui/tooltip";
 export default function PanelConfig({
   title,
   tooltip,
-  enabled,
-  setEnabled,
+  enabledTuple,
   disabled,
   children,
 }: {
   title: string;
   tooltip: string;
-  enabled: boolean;
-  setEnabled: (enabled: boolean) => void;
+  enabledTuple?: {value: boolean, setValue: (value: boolean) => void};
   disabled?: boolean;
   children?: React.ReactNode;
 }) {
   const handleToggle = () => {
-    setEnabled(!enabled);
+    if (enabledTuple) {
+      const { value, setValue } = enabledTuple;
+      setValue(!value);
+    } else {
+      console.error("No enabledTuple provided");
+    }
   };
 
   return (
@@ -37,12 +40,14 @@ export default function PanelConfig({
             </TooltipContent>
           </Tooltip>
         </TooltipProvider>
-        <Switch
-          id={title}
-          checked={enabled}
-          onCheckedChange={handleToggle}
-          disabled={disabled}
-        />
+        {enabledTuple && (
+          <Switch
+            id={title}
+            checked={enabledTuple.value}
+            onCheckedChange={handleToggle}
+            disabled={disabled}
+          />
+        )}
       </div>
       <div className="mt-1">{children}</div>
     </div>

@@ -4,10 +4,18 @@ import OpenAI from "openai";
 
 export async function POST(request: Request) {
   try {
-    const { messages, tools } = await request.json();
-    console.log("Received messages:", messages);
+    const { messages, tools, apiKey } = await request.json();
+    console.log("Received messages:", messages);    
+    if (!apiKey) {
+      return NextResponse.json(
+        { error: "OpenAI API key is required. Please set it in the settings panel." },
+        { status: 400 }
+      );
+    }
 
-    const openai = new OpenAI();
+    const openai = new OpenAI({
+      apiKey: apiKey,
+    });
 
     const events = await openai.responses.create({
       model: MODEL,
