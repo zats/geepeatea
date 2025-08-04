@@ -1,6 +1,10 @@
 import React from "react";
 
-const LoadingMessage: React.FC = () => {
+interface LoadingMessageProps {
+  dotColor?: string;
+}
+
+const LoadingMessage: React.FC<LoadingMessageProps> = ({ dotColor = "bg-gray-400" }) => {
   return (
     <div className="text-sm">
       <div className="flex flex-col">
@@ -22,15 +26,15 @@ const LoadingMessage: React.FC = () => {
                 }
               `}</style>
               <div 
-                className="dot w-2 h-2 bg-gray-400 rounded-full"
+                className={`dot w-2 h-2 ${dotColor} rounded-full`}
                 style={{ animationDelay: '0ms' }}
               />
               <div 
-                className="dot w-2 h-2 bg-gray-400 rounded-full"
+                className={`dot w-2 h-2 ${dotColor} rounded-full`}
                 style={{ animationDelay: '200ms' }}
               />
               <div 
-                className="dot w-2 h-2 bg-gray-400 rounded-full"
+                className={`dot w-2 h-2 ${dotColor} rounded-full`}
                 style={{ animationDelay: '400ms' }}
               />
             </div>

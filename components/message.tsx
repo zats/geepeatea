@@ -2,7 +2,9 @@ import { MessageItem } from "@/lib/assistant";
 import React, { useState, useRef, useEffect } from "react";
 import ReactMarkdown from "react-markdown";
 import useConversationStore from "@/stores/useConversationStore";
-import { X, Edit3, Trash2, MessageSquare, ChevronLeft, ChevronRight, History } from "lucide-react";
+import { X, Edit3, Trash2, MessageSquare, ChevronLeft, ChevronRight, History, Loader2, HelpCircle } from "lucide-react";
+import { askEphemeralQuery } from "@/lib/ephemeral-client";
+import QuestionModal from "./question-modal";
 
 interface MessageProps {
   message: MessageItem;
@@ -28,6 +30,14 @@ const Message = React.forwardRef<{ clearAnnotations: () => void; editAnnotation:
   const [annotationMenu, setAnnotationMenu] = useState<{ x: number; y: number } | null>(null);
   const [activeAnnotation, setActiveAnnotation] = useState<string | null>(null);
   const [annotationComment, setAnnotationComment] = useState("");
+  const [isQuestionModalOpen, setIsQuestionModalOpen] = useState(false);
+  const [modalContext, setModalContext] = useState<{
+    message: string;
+    selectedText?: string;
+    selectionStart?: number;
+    selectionEnd?: number;
+    title?: string;
+  } | null>(null);
   const messageRef = useRef<HTMLDivElement>(null);
   const messageDomRef = useRef<HTMLDivElement>(null);
   const { deleteChatMessage, deleteChatMessageAfter, editChatMessage, selectMessageVersion, createMessageVersion } = useConversationStore();
@@ -72,6 +82,18 @@ const Message = React.forwardRef<{ clearAnnotations: () => void; editAnnotation:
   const handleDeleteAfter = () => {
     deleteChatMessageAfter(messageIndex);
     setContextMenu(null);
+  };
+  
+  const handleAskAboutThis = () => {
+    const messageText = message.content[0].text as string;
+    if (!messageText) return;
+    
+    setContextMenu(null);
+    setModalContext({
+      message: messageText,
+      title: "Ask about this message"
+    });
+    setIsQuestionModalOpen(true);
   };
 
   const handleEdit = () => {
@@ -279,6 +301,30 @@ const Message = React.forwardRef<{ clearAnnotations: () => void; editAnnotation:
     // Clear selection when annotation is cancelled
     window.getSelection()?.removeAllRanges();
   }, [annotations]);
+
+  const handleAskAboutSelection = () => {
+    if (!selectedText) return;
+    
+    const messageText = message.content[0].text as string;
+    const textToQuery = selectedText;
+    const selectionIndices = selectionRange;
+    
+    setAnnotationMenu(null);
+    
+    // Clear selection and selection range
+    setSelectedText("");
+    setSelectionRange(null);
+    window.getSelection()?.removeAllRanges();
+    
+    setModalContext({
+      message: messageText,
+      selectedText: textToQuery,
+      selectionStart: selectionIndices?.start,
+      selectionEnd: selectionIndices?.end,
+      title: "Ask about selected text"
+    });
+    setIsQuestionModalOpen(true);
+  };
 
   const handleDeleteAnnotation = (annotationId: string) => {
     setAnnotations(prev => prev.filter(ann => ann.id !== annotationId));
@@ -594,6 +640,14 @@ const Message = React.forwardRef<{ clearAnnotations: () => void; editAnnotation:
             Edit
           </button>
           
+          <button
+            className="w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-100 flex items-center gap-2"
+            onClick={handleAskAboutThis}
+          >
+            <HelpCircle className="w-4 h-4" />
+            Ask about this
+          </button>
+          
           {/* Separator */}
           <div className="border-t border-gray-200 my-1"></div>
           
@@ -629,7 +683,31 @@ const Message = React.forwardRef<{ clearAnnotations: () => void; editAnnotation:
             <MessageSquare className="w-4 h-4" />
             Annotate
           </button>
+          
+          <button
+            className="w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-100 flex items-center gap-2"
+            onClick={handleAskAboutSelection}
+          >
+            <HelpCircle className="w-4 h-4" />
+            Ask about this
+          </button>
         </div>
+      )}
+
+      {/* Question Modal */}
+      {modalContext && (
+        <QuestionModal
+          isOpen={isQuestionModalOpen}
+          onClose={() => {
+            setIsQuestionModalOpen(false);
+            setModalContext(null);
+          }}
+          contextMessage={modalContext.message}
+          selectedText={modalContext.selectedText}
+          selectionStart={modalContext.selectionStart}
+          selectionEnd={modalContext.selectionEnd}
+          title={modalContext.title}
+        />
       )}
 
     </div>
