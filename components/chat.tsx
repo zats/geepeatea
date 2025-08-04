@@ -63,17 +63,42 @@ const Chat: React.FC<ChatProps> = ({
     });
   }, [isInAnnotationMode]);
 
-  const formatAnnotationsForMessage = (inputText: string): string => {
+  const formatAnnotationsForMessage = (inputText: string, annotatedMessageIndex?: number): string => {
     const allAnnotations = Object.values(messageAnnotations).flat();
     if (allAnnotations.length === 0) {
       return inputText;
+    }
+
+    // Get the annotated message content for context and logging
+    let annotatedMessageContent = "";
+    let messageReference = "the previous message";
+    
+    if (annotatedMessageIndex !== undefined) {
+      const annotatedMessage = items[annotatedMessageIndex];
+      if (annotatedMessage && annotatedMessage.type === "message" && annotatedMessage.content?.[0]?.text) {
+        annotatedMessageContent = annotatedMessage.content[0].text as string;
+        
+        // Determine more specific reference based on message position
+        const assistantMessages = items.filter((item, index) => 
+          item.type === "message" && item.role === "assistant" && index <= annotatedMessageIndex
+        );
+        const messagePosition = assistantMessages.length;
+        
+        if (messagePosition === 1) {
+          messageReference = "your first message";
+        } else if (messagePosition === assistantMessages.length && annotatedMessageIndex === items.length - 2) {
+          messageReference = "your previous message";
+        } else {
+          messageReference = `your message #${messagePosition}`;
+        }
+      }
     }
 
     let formattedMessage = inputText;
     if (inputText.trim()) {
       formattedMessage += "\n\n";
     }
-    formattedMessage += `User made following annotations on the previous message.
+    formattedMessage += `User made following annotations on ${messageReference}.
 Retain as much of the original message as possible, replace annotated parts where makes sense.
 Annotations list:
 `;
@@ -88,13 +113,13 @@ Respond with full message. Do not mention annotations themselves or the fact use
   };
 
   const handleSendMessage = useCallback(() => {
-    const messageToSend = formatAnnotationsForMessage(inputMessageText);
-    
     // Find which message has annotations (if any) - only if there are actual annotations
     const hasAnnotations = Object.keys(messageAnnotations).length > 0;
     const annotatedMessageIndex = hasAnnotations 
       ? Math.max(...Object.keys(messageAnnotations).map(Number))
       : undefined;
+    
+    const messageToSend = formatAnnotationsForMessage(inputMessageText, annotatedMessageIndex);
         
     // Clear annotations FIRST - this makes composer background white immediately
     setMessageAnnotations({});
@@ -112,7 +137,7 @@ Respond with full message. Do not mention annotations themselves or the fact use
     // Then send the message
     onSendMessage(messageToSend, isInAnnotationMode ? annotatedMessageIndex : undefined);
     setInputMessageText("");
-  }, [inputMessageText, messageAnnotations, onSendMessage, isInAnnotationMode]);
+  }, [inputMessageText, messageAnnotations, onSendMessage, isInAnnotationMode, items]);
 
   const handleStopGeneration = useCallback(() => {
     abortCurrentRequest();
