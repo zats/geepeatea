@@ -30,6 +30,7 @@ interface ConversationState {
   selectMessageVersion: (messageIndex: number, versionId: string) => void;
   getCurrentVersionContent: (messageIndex: number) => Item["content"];
   setMessageToReplaceIndex: (index: number | null) => void;
+  clearConversation: () => void;
   rawSet: (state: any) => void;
 }
 
@@ -385,6 +386,29 @@ const useConversationStore = create<ConversationState>((set) => ({
     return [];
   },
   setMessageToReplaceIndex: (index) => set({ messageToReplaceIndex: index }),
+  clearConversation: () => {
+    const state = useConversationStore.getState();
+    
+    // Abort any in-flight requests
+    if (state.currentAbortController) {
+      state.currentAbortController.abort();
+    }
+    
+    // Reset to initial state
+    set({
+      chatMessages: [
+        {
+          type: "message",
+          role: "assistant",
+          content: [{ type: "output_text", text: INITIAL_MESSAGE }],
+        },
+      ],
+      conversationItems: [],
+      chatState: 'idle',
+      currentAbortController: null,
+      messageToReplaceIndex: null,
+    });
+  },
   rawSet: set,
 }));
 

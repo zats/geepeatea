@@ -1,11 +1,19 @@
 "use client";
 import Assistant from "@/components/assistant";
 import ToolsPanel from "@/components/tools-panel";
-import { Menu, X, Settings } from "lucide-react";
+import { Menu, X, Settings, PenSquare } from "lucide-react";
 import { useState } from "react";
+import useConversationStore from "@/stores/useConversationStore";
 
 export default function Main() {
   const [isToolsPanelOpen, setIsToolsPanelOpen] = useState(false);
+  const { clearConversation } = useConversationStore();
+
+  const handleNewConversation = () => {
+    clearConversation();
+    // Close settings panel after clearing conversation
+    setIsToolsPanelOpen(false);
+  };
 
   return (
     <div className="h-screen relative">
@@ -22,8 +30,20 @@ export default function Main() {
         />
       </div>
       
-      {/* Settings button for all screens */}
-      <div className="fixed top-4 right-4 z-40">
+      {/* Action buttons */}
+      <div className="fixed top-4 right-4 z-40 flex gap-2">
+        {/* New Conversation button - hidden when settings panel is open */}
+        {!isToolsPanelOpen && (
+          <button 
+            onClick={handleNewConversation}
+            className="flex items-center justify-center w-10 h-10 bg-white border border-stone-200 rounded-full shadow-sm hover:shadow-md transition-all duration-200 hover:bg-gray-50"
+            aria-label="New conversation"
+          >
+            <PenSquare size={20} />
+          </button>
+        )}
+        
+        {/* Settings button */}
         <button 
           onClick={() => setIsToolsPanelOpen(!isToolsPanelOpen)}
           className="flex items-center justify-center w-10 h-10 bg-white border border-stone-200 rounded-full shadow-sm hover:shadow-md transition-all duration-200 hover:bg-gray-50"
