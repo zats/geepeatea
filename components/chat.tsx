@@ -330,7 +330,7 @@ Respond with full message. Do not mention annotations themselves or the fact use
                   {(chatState === 'assistant_responding' || chatState === 'waiting_for_assistant') && !inputMessageText && !isInAnnotationMode ? (
                     <button
                       data-testid="stop-button"
-                      className="flex size-8 items-end justify-center rounded-full bg-red-600 text-white transition-colors hover:opacity-70 focus-visible:outline-none focus-visible:outline-red-600"
+                      className="flex size-8 items-end justify-center rounded-full bg-black text-white transition-colors hover:opacity-70 focus-visible:outline-none focus-visible:outline-black"
                       onClick={handleStopGeneration}
                     >
                       <svg
