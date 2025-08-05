@@ -572,7 +572,7 @@ const Message = React.forwardRef<{ clearAnnotations: () => void; editAnnotation:
           <div>
             <div 
               ref={messageDomRef}
-              className={`ml-4 md:ml-24 ${isEditing ? '' : 'rounded-[16px] px-4 py-2 bg-[#ededed]'} text-stone-900 font-light cursor-pointer`}
+              className={`ml-4 md:ml-24 ${isEditing ? '' : 'rounded-[16px] px-4 py-2 bg-[#ededed]'} text-stone-900 font-light ${message.isPlaceholder ? '' : 'cursor-pointer'}`}
               onContextMenu={handleContextMenu}
             >
               <div>
@@ -602,7 +602,7 @@ const Message = React.forwardRef<{ clearAnnotations: () => void; editAnnotation:
           <div className="flex">
             <div 
               ref={messageDomRef}
-              className={`mr-4 md:mr-24 rounded-[16px] px-4 py-2 bg-white border border-gray-200 text-black font-light cursor-pointer ${isEditing ? 'relative' : ''}`}
+              className={`mr-4 md:mr-24 rounded-[16px] px-4 py-2 bg-white border border-gray-200 text-black font-light ${message.isPlaceholder ? '' : 'cursor-pointer'} ${isEditing ? 'relative' : ''}`}
               onContextMenu={handleContextMenu}
             >
               <div className={isEditing ? 'opacity-0' : '' + ' whitespace-pre-wrap'}>
